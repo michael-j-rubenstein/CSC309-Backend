@@ -1,8 +1,8 @@
 # CSC309-Backend
 
-**Pull code into local repo**
+**Step 1: Pull code into local repo**
 
-**Setup Virtual Enviornment:**
+**Step 2: Setup Virtual Enviornment:**
 
 1. cd into the project directory
 2. Create the virtual enviornment by running `pip3 install virtualenv`
@@ -13,5 +13,5 @@
 
 Should be set up!
 
-**Running Django Server**
+**Step 3: Running Django Server**
 `./manage.py runserver`
