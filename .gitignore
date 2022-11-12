@@ -1,6 +1,4 @@
 /venv
 /db.sqlite3
-/classes/__pycache__
-/backend/__pycache__
-/accounts/__pycache__
-/studios/__pycache__
+*/__pychache__
+*/migrations/__pycache__
