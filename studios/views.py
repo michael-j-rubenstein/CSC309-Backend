@@ -1,13 +1,17 @@
 from django.shortcuts import render
-from django.http import Http404
-
+from django.http import Http404, JsonResponse
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404, RetrieveAPIView, ListAPIView
+from rest_framework.exceptions import ValidationError
 
 from .models import Studio
 from .serializers import StudioSerializer
+
+import json
+import math
+
 # Create your views here.
 
 
@@ -44,5 +48,34 @@ from .serializers import StudioSerializer
 #         return get_object_or_404(Studio, id=1)
 
 def AllStudios(request):
+
     if request.method == 'POST':
-        print('asda')
+        payload = json.loads(request.body)
+
+        user_lat = payload.get("latitude", '')
+        user_long = payload.get("longitude", '')
+
+        if user_lat == '' or user_long == '':
+            raise ValidationError
+
+        studio_queryset = Studio.objects.all()
+
+        response = {}
+
+        studios = []
+
+        for s in studio_queryset:
+            studio = s.__dict__
+            studio.pop('_state')
+            lat_diff = abs(studio['latitude'] - user_lat)
+            long_diff = abs(studio['longitude'] - user_long)
+            distance = math.sqrt(lat_diff ** 2 + long_diff ** 2)
+            studio['distance'] = distance
+            studios.append(studio)
+
+        studios = sorted(studios, key=lambda d: d['distance'])
+
+        for s in studios:
+            response[s['name']] = s
+
+        return JsonResponse(response)
