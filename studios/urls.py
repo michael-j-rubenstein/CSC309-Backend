@@ -1,3 +1,7 @@
 from django.urls import path, include
+from .views import AllStudios
 
-urlpatterns = []
+urlpatterns = [
+    path('all/',
+         AllStudios, name='all')
+]
