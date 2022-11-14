@@ -79,3 +79,11 @@ def AllStudios(request):
             response[s['name']] = s
 
         return JsonResponse(response)
+
+
+def StudioInformation(request, id):
+    if request.method == 'GET':
+        studio = get_object_or_404(Studio, id=id)
+        studio = studio.__dict__
+        studio.pop('_state')
+        return JsonResponse(studio)
