@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import Http404, JsonResponse
 
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404, RetrieveAPIView, ListAPIView
 from rest_framework.exceptions import ValidationError
@@ -47,6 +48,7 @@ import math
 
 #         return get_object_or_404(Studio, id=1)
 
+@api_view(['POST'])
 def AllStudios(request):
 
     if request.method == 'POST':
@@ -81,6 +83,7 @@ def AllStudios(request):
         return JsonResponse(response)
 
 
+@api_view(['GET'])
 def StudioInformation(request, id):
     if request.method == 'GET':
         studio = get_object_or_404(Studio, id=id)
