@@ -48,8 +48,12 @@ import math
 
 #         return get_object_or_404(Studio, id=1)
 
+# @api_view(['GET', 'POST'])
 @api_view(['POST'])
 def AllStudios(request):
+
+    # if request.method == 'GET':
+    #     return JsonResponse({'message': "Post location data to get nearby studios"})
 
     if request.method == 'POST':
         payload = json.loads(request.body)
