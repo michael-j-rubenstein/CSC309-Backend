@@ -41,10 +41,9 @@ def AllStudios(request):
             url = "http://maps.google.com/maps/dir/" + \
                 str(user_lat) + ",+" + str(user_long) + "/" + url_dest
 
-            lat_diff = abs(studio['latitude'] - user_lat) * \
-                111.1           # converted to KM
-            long_diff = abs(studio['longitude'] -
-                            user_long) * 111.1  # converted to KM
+            # difference in latitude and longitude converted to KM (apporximation)
+            lat_diff = abs(studio['latitude'] - user_lat) * 111.1
+            long_diff = abs(studio['longitude'] - user_long) * 111.1
             distance = math.sqrt(lat_diff ** 2 + long_diff ** 2)
             studio['distance'] = round(distance, 2)
             studios.append(studio)
