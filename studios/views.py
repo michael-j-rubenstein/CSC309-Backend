@@ -35,26 +35,35 @@ def AllStudios(request):
             studio = s.__dict__
             studio.pop('_state')
 
+            # get the destination part of the url
             url_dest = studio['address'].replace(
                 ' ', '+') + '+' + studio['postal'].replace('', '+')
 
+            # get the actual google maps directions url
             url = "http://maps.google.com/maps/dir/" + \
                 str(user_lat) + ",+" + str(user_long) + "/" + url_dest
 
             # difference in latitude and longitude converted to KM (apporximation)
             lat_diff = abs(studio['latitude'] - user_lat) * 111.1
             long_diff = abs(studio['longitude'] - user_long) * 111.1
+
+            # get approx straight line distance
             distance = math.sqrt(lat_diff ** 2 + long_diff ** 2)
             studio['distance'] = round(distance, 2)
-            studios.append(studio)
+
+            # remove / add some data
             studio.pop('latitude')
             studio.pop('longitude')
             studio.pop('phone_num')
             studio.pop('postal')
             studio['directions'] = url
 
+            studios.append(studio)
+
+        # sort studios in ascending order via the distance to current location
         studios = sorted(studios, key=lambda d: d['distance'])
 
+        # populate response dictionary
         for s in studios:
             response[s['name']] = s
 
