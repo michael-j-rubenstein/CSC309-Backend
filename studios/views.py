@@ -12,6 +12,7 @@ from .serializers import StudioSerializer
 
 import json
 import math
+import requests
 
 # Create your views here.
 
@@ -73,11 +74,25 @@ def AllStudios(request):
         for s in studio_queryset:
             studio = s.__dict__
             studio.pop('_state')
-            lat_diff = abs(studio['latitude'] - user_lat)
-            long_diff = abs(studio['longitude'] - user_long)
+
+            url_dest = studio['address'].replace(
+                ' ', '+') + '+' + studio['postal'].replace('', '+')
+
+            url = "http://maps.google.com/maps/dir/" + \
+                str(user_lat) + ",+" + str(user_long) + "/" + url_dest
+
+            lat_diff = abs(studio['latitude'] - user_lat) * \
+                111.1           # converted to KM
+            long_diff = abs(studio['longitude'] -
+                            user_long) * 111.1  # converted to KM
             distance = math.sqrt(lat_diff ** 2 + long_diff ** 2)
-            studio['distance'] = distance
+            studio['distance'] = round(distance, 2)
             studios.append(studio)
+            studio.pop('latitude')
+            studio.pop('longitude')
+            studio.pop('phone_num')
+            studio.pop('postal')
+            studio['directions'] = url
 
         studios = sorted(studios, key=lambda d: d['distance'])
 
