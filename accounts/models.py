@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager, AbstractBaseUser
+from django.contrib.auth.models import PermissionsMixin
 
 
 class CustomUser(BaseUserManager):
@@ -16,14 +17,14 @@ class CustomUser(BaseUserManager):
             phone_number=phone_number,
             username=username
         )
-        print(password)
+
         user.set_password(password)
         user.save(using=self._db)
         return user
 
     def create_superuser(self, username, password):
         if password is None:
-            raise TypeError('Superusers must have a password.')
+            raise TypeError('Password Required')
 
         user = self.create_user(username=username, password=password)
         user.is_superuser = True
@@ -33,7 +34,7 @@ class CustomUser(BaseUserManager):
         return user
 
 
-class Users(AbstractBaseUser):
+class Users(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=150, null=True, blank=True)
     last_name = models.CharField(max_length=150, null=True, blank=True)
     # classes_lst = models.ManyToManyField(Classes, default=None)
@@ -42,9 +43,13 @@ class Users(AbstractBaseUser):
     email = models.EmailField(verbose_name='Email Address', null=True, blank=True)
     avatar = models.ImageField(upload_to='accounts/images', height_field=None, width_field=None, max_length=100, null=True, blank=True)
     phone_number = models.CharField(max_length=150, null=True, blank=True)
-    username = models.CharField(max_length=25, null=True, blank=True)
+    username = models.CharField(max_length=25, null=True, blank=True, unique=True)
+    is_staff = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = []
 
     objects = CustomUser()
+
+    def __str__(self):
+        return self.username

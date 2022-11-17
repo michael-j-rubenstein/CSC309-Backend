@@ -11,18 +11,19 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = Users
         fields = ('email', 'first_name', 'last_name', 'avatar', 'phone_number', 'username', 'password')
 
+    # overidding the create user method in the model for my custom user
+    def create(self, validated_data):
+        # Use the `create_user` method we wrote earlier to create a new user.
+        user = Users.objects.create_user(**validated_data)
+        user.save()
+        return user
+
     # def validate(self, attrs):
     #     if attrs['password'] != attrs['password2']:
     #         raise serializers.ValidationError({"password": "Error: Password fields didn't match."})
     #
     #     return attrs
     #
-
-    def create(self, validated_data):
-        # Use the `create_user` method we wrote earlier to create a new user.
-        user = Users.objects.create_user(**validated_data)
-        user.save()
-        return user
     # def save(self, password=None, **kwargs):
     #     user = Users(username=self.validated_data['username'],
     #                  email=self.validated_data['email'],

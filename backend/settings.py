@@ -135,4 +135,4 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60)
 }
 
-AUTH_USER = 'accounts.Users'
+AUTH_USER_MODEL = 'accounts.Users'

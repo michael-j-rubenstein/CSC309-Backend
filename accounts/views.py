@@ -13,13 +13,13 @@ class RegistrationAPIView(APIView):
     permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
 
-    queryset = Users.objects.all()
+    # queryset = Users.objects.all()
 
     def post(self, request):
 
-        user = request.data.get('user', {})
+        user = request.data.get('users', {})
         serializer = self.serializer_class(data=user)
-        print(serializer)
+        # print(serializer)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
