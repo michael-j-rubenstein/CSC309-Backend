@@ -38,7 +38,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'studios'
+    'studios',
+    'classes',
+    'accounts'
 ]
 
 # removed     'django.middleware.csrf.CsrfViewMiddleware',
