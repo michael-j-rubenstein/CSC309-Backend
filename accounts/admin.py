@@ -5,7 +5,7 @@ from django.contrib.admin import register
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 
-from accounts.models import Users
+from accounts.models import Users, CustomUser
 
 
 # class UserProfileInline(admin.StackedInline):
@@ -28,5 +28,16 @@ from accounts.models import Users
 # @register(Users)
 # class UserProfile(admin.ModelAdmin):
 #     fields = ['email', 'first_name', 'last_name', 'avatar', 'phone_number', 'username', 'password']
+
+# class AccountsUserAdmin(AuthUserAdmin):
+#     # fields = ['email', 'first_name', 'last_name', 'avatar', 'phone_number', 'username', 'password']
+#     list_display = ['email', 'first_name', 'last_name', 'avatar', 'phone_number', 'username', 'password']
+#
+#     class Meta:
+#         model = CustomUser
+#     def __str__(self):
+#         return self.username
+
+
 
 admin.site.register(Users)

@@ -16,16 +16,13 @@ class RegistrationAPIView(APIView):
     queryset = Users.objects.all()
 
     def post(self, request):
-        print('hello')
-        user = json.loads(request.body)
 
+        user = request.data.get('user', {})
         serializer = self.serializer_class(data=user)
+        print(serializer)
         serializer.is_valid(raise_exception=True)
-        print('hi', user, serializer)
-        print(request.data)
         serializer.save()
-
-        return Response('ok')
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     # def get(self, request):
     #     Users = self.get_queryset()
