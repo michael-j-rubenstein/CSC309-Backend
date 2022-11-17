@@ -9,12 +9,13 @@ from django.contrib.auth.password_validation import validate_password
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Users
-        fields = ('email', 'first_name', 'last_name', 'avatar', 'phone_number', 'username', 'password')
+        fields = ('username', 'password', 'email', 'first_name', 'last_name', 'avatar', 'phone_number')
 
     # overidding the create user method in the model for my custom user
     def create(self, validated_data):
         # Use the `create_user` method we wrote earlier to create a new user.
         user = Users.objects.create_user(**validated_data)
+        user.set_password(validated_data['password'])
         user.save()
         return user
 

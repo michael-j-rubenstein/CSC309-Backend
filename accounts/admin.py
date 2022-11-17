@@ -5,7 +5,7 @@ from django.contrib.admin import register
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as AuthUserAdmin
 
-from accounts.models import Users, CustomUser
+from accounts.models import Users
 
 
 # class UserProfileInline(admin.StackedInline):
