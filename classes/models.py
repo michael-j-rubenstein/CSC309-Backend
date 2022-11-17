@@ -1,5 +1,4 @@
 from django.db import models
-from accounts.models import User
 from studios.models import Studio
 
 # Create your models here.
@@ -16,10 +15,8 @@ class Classes(models.Model):
     coach = models.CharField(max_length=50, null=False)
     capacity = models.IntegerField()
     keywords = models.ManyToManyField(Keyword, default=None)
-    # weekday = models.CharField(max_length=10, null=False)
     weekday = models.CharField(max_length=10)
     studio = models.ForeignKey(Studio, on_delete=CASCADE, null=True)
-    # class_lst = models.ManyToManyField(Class, default=None)
 
 
 class Class(models.Model):
