@@ -3,18 +3,11 @@ from accounts.models import User
 from studios.models import Studio
 
 # Create your models here.
-from django.db.models import SET_NULL
+from django.db.models import CASCADE
 
 
 class Keyword(models.Model):
     keyword = models.CharField(max_length=50, null=False)
-
-
-class Class(models.Model):
-    start_time = models.TimeField()
-    end_time = models.TimeField()
-    date = models.DateField()
-    studio = models.ForeignKey(Studio, on_delete=SET_NULL, null=True)
 
 
 class Classes(models.Model):
@@ -25,7 +18,20 @@ class Classes(models.Model):
     keywords = models.ManyToManyField(Keyword, default=None)
     # weekday = models.CharField(max_length=10, null=False)
     weekday = models.CharField(max_length=10)
-    class_lst = models.ManyToManyField(Class, default=None)
+    studio = models.ForeignKey(Studio, on_delete=CASCADE, null=True)
+    # class_lst = models.ManyToManyField(Class, default=None)
+
+
+class Class(models.Model):
+    name = models.CharField(max_length=50)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    date = models.DateField()
+    classes = models.ForeignKey(Classes, on_delete=CASCADE, null=True)
+    studio = models.ForeignKey(Studio, on_delete=CASCADE, null=True)
+
+
+
 
 
 

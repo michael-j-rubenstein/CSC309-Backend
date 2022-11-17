@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-# from ..classes.models import Classes
+# from classes.models import Classes
 
 # Create your models here.
 
@@ -12,6 +12,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 #     def __str__(self):
 #         return str(self.type) + '  -  ' + str(self.quantity) + '  (' + str(self.id) + ')'
+
+
 
 class Ammenity(models.Model):
     type = models.CharField(max_length=30, null=False)
