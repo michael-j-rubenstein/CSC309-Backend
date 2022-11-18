@@ -2,7 +2,6 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.generics import CreateAPIView
-
 from .models import Users
 from .serializers import RegisterSerializer
 import json
@@ -15,7 +14,7 @@ class RegistrationAPIView(CreateAPIView):
 
     queryset = Users.objects.all()
 
-##retriveupdateapiview
+# retriveupdateapiview
 
     # def post(self, request):
     #
@@ -29,4 +28,3 @@ class RegistrationAPIView(CreateAPIView):
     # def get(self, request):
     #     Users = self.get_queryset()
     #     return Response(Users)
-

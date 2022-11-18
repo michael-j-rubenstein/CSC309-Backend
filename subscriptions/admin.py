@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.sites.shortcuts import get_current_site
-from .models import Subscription
+from .models import Subscription, StripeUser
 
 from django.conf import settings
 import json
@@ -34,3 +34,4 @@ import stripe
 
 # admin.site.register(Subscription, SubscriptionAdmin)
 admin.site.register(Subscription)
+admin.site.register(StripeUser)
