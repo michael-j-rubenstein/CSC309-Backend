@@ -1,6 +1,7 @@
 from django.urls import path, include
 from .views import SubscriptionOne, SubscriptionAll, CreateStripeCheckoutSession, \
-    CreateSubscription, UpdateSubscription, SuccessCheckout, DeleteSubscription
+    CreateSubscription, UpdateSubscription, SuccessCheckout, DeleteSubscription, \
+    GetPrevInvoices
 
 urlpatterns = [
     path('<int:pk>/', SubscriptionOne.as_view(), name='subscriptions_one'),
@@ -11,5 +12,6 @@ urlpatterns = [
     path('update/<int:id>/', UpdateSubscription, name='subscription_update'),
     path('delete/<int:id>/', DeleteSubscription, name='sub'),
     path('checkout/success/<str:session_id>/',
-         SuccessCheckout, name='checkout_success')
+         SuccessCheckout, name='checkout_success'),
+    path('invoice/history/', GetPrevInvoices, name='user_prev_invoices')
 ]

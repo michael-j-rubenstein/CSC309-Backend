@@ -3,8 +3,9 @@ from django.http import JsonResponse
 
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView, ListAPIView
+from rest_framework.permissions import IsAuthenticated
 
-from .models import Subscription, StripeUser
+from .models import Subscription, StripeUser, StripeUserLog
 from .serializers import SubscriptionSerializer
 
 from rest_framework.decorators import api_view
@@ -33,8 +34,8 @@ class SubscriptionAll(ListAPIView):
 
 
 class CreateStripeCheckoutSession(APIView):
-    def post(self, request, *args, **kwargs):
 
+    def post(self, request, *args, **kwargs):
         user_has_subscription = len(
             StripeUser.objects.all().filter(user_id=request.user.id)) == 1
 
@@ -73,7 +74,7 @@ class CreateStripeCheckoutSession(APIView):
             return JsonResponse({'msg': 'Something went wrong!', 'error': str(e)}, status=500)
 
 
-@api_view(["POST"])
+@api_view(["GET"])
 def SuccessCheckout(request, session_id):
     if request.method == 'GET':
         session = stripe.checkout.Session.retrieve(session_id)
@@ -83,9 +84,15 @@ def SuccessCheckout(request, session_id):
         customer_id = customer.id
         user_id = request.user
         subscription_id = session.metadata.product_id
+
+        print(request.user)
+
         new_user = StripeUser(user_id=user_id,
                               stripe_customer_id=customer_id, subscription_id=subscription_id)
+        new_user_log = StripeUserLog(
+            user=user_id, stripe_customer_id=customer_id)
         new_user.save()
+        new_user_log.save()
         # invoices = stripe.Invoice.list(customer=customer_id).data
         # for invoice in invoices:
         #     invoice_data = {
@@ -104,6 +111,10 @@ def SuccessCheckout(request, session_id):
 
 @api_view(["POST"])
 def CreateSubscription(request):
+
+    if not request.user.is_superuser:
+        return JsonResponse({"error": "User does not have permission to add a new subscription"})
+
     if request.method == 'POST':
 
         payload = json.loads(request.body)
@@ -113,6 +124,15 @@ def CreateSubscription(request):
 
         if name == '' or amount == '' or type == '':
             raise ValidationError
+
+        if len(Subscription.objects.all().filter(name=name)) != 0:
+            return JsonResponse({"error": "Plan name already exists, please choose a different name"})
+
+        if type not in {"M", "Y"}:
+            return JsonResponse({"error": """Incorrect type, please choose M for monthly or Y for yearly"""})
+
+        if amount < 0:
+            return JsonResponse({"error": "Amount field cannot be negative"})
 
         subscription = Subscription(name=name, amount=amount, type=type)
         subscription.save()
@@ -191,14 +211,65 @@ def DeleteSubscription(request, id):
 
         all_subscriptions = stripe.Subscription.list()
 
-        wanted_subscription = {}
+        wanted_subscriptions = []
 
-        stripe_customer = StripeUser.objects.all().filter(subscription=id)[0]
+        stripe_customer = StripeUser.objects.all().filter(subscription=id)
 
-        for subscription in all_subscriptions:
-            if subscription.customer == stripe_customer.stripe_customer_id:
-                wanted_subscription = subscription
+        if len(stripe_customer) != 0:
+            for subscription in all_subscriptions:
+                if subscription.customer == stripe_customer.stripe_customer_id:
+                    wanted_subscriptions.append(subscription)
 
-        print(wanted_subscription)
-        # stripe.Subscription.delete(wanted_subscription.id)
-        return JsonResponse({"a": 1})
+        for subscription in wanted_subscriptions:
+            stripe.Subscription.delete(subscription.id)
+
+        stripe.Product.modify(str(id), active=False)
+
+        for customer in stripe_customer:
+            customer.delete()
+
+        local_subscription = Subscription.objects.all().filter(id=id)[0]
+
+        stripe.Price.modify(
+            local_subscription.price_id, active=False)
+
+        local_subscription.delete()
+
+        return JsonResponse({"success": "Subscription deleted successfully!"})
+
+
+@api_view(["GET"])
+def GetPrevInvoices(request):
+    if request.user.is_authenticated:
+        print("asdad")
+
+    user_logs = StripeUserLog.objects.all().filter(id=request.user.id)
+
+    stripe_customer_ids = []
+
+    for log in user_logs:
+        stripe_customer_ids.append(log.stripe_customer_id)
+
+    print(stripe_customer_ids)
+
+    all_invoices = []
+
+    for customer_id in stripe_customer_ids:
+        invoices = stripe.Invoice.list(customer=customer_id).data
+        for invoice in invoices:
+            print(invoice)
+            invoice_data = {
+                "invoice_id": invoice.id,
+                "invoice_total": invoice.total,
+                "amount_paid": invoice.amount_paid,
+                "customer": invoice.customer,
+                "invoice_link": invoice.hosted_invoice_url,
+                "invoice_period": invoice.lines.data[0].period,
+                "plan": {
+                    "active": invoice.lines.data[0].plan.active,
+                    "name": invoice.lines.data[0].plan.nickname,
+                    "type": invoice.lines.data[0].plan.interval
+                }
+            }
+            all_invoices.append(invoice_data)
+    return JsonResponse({"invoices": all_invoices})
