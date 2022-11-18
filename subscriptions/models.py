@@ -2,7 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 # from accounts.models import User
-from django.contrib.auth.models import User
+from accounts.models import Users
 
 # Create your models here.
 
@@ -23,7 +23,11 @@ class Subscription(models.Model):
 
 # TODO: Need to have another table that maps users to subscriptions or can have it in user table
 
-class StripeUsers(models.Model):
-    user_id = models.OneToOneField(User, on_delete=models.CASCADE)
+class StripeUser(models.Model):
+    user_id = models.OneToOneField(Users, on_delete=models.CASCADE)
     stripe_customer_id = models.CharField(
         max_length=200, null=False, unique=True)
+    subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return str(self.user_id) + " " + str(self.subscription)

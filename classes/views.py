@@ -9,8 +9,8 @@ import datetime
 from rest_framework.decorators import api_view
 
 
-
-WEEK_DAY_CODE = {'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3, 'friday': 4, 'saturday': 5, 'sunday': 6}
+WEEK_DAY_CODE = {'monday': 0, 'tuesday': 1, 'wednesday': 2,
+                 'thursday': 3, 'friday': 4, 'saturday': 5, 'sunday': 6}
 
 # Create your views here.
 # def ListClassView(request, id):
@@ -39,7 +39,8 @@ def CreateClasses(request, id):
         end_time = classes_info.get('end_time')
         end_date = classes_info.get('end_date')
 
-        new_classes = Classes(name=name, description=description, coach=coach, capacity=capacity, weekday=weekday, studio=studio)
+        new_classes = Classes(name=name, description=description,
+                              coach=coach, capacity=capacity, weekday=weekday, studio=studio)
         new_classes.save()
 
         for keyword in keywords:
@@ -57,9 +58,12 @@ def CreateClasses(request, id):
 
         today = datetime.date.today()
         week_day_code = WEEK_DAY_CODE[weekday]
-        class_date = today + datetime.timedelta(days=-today.weekday() + week_day_code, weeks=1)
-        class_end = datetime.date(end_date["year"], end_date["month"], end_date["day"])
-        class_start_time = datetime.time(start_time['hour'], start_time['minute'])
+        class_date = today + \
+            datetime.timedelta(days=-today.weekday() + week_day_code, weeks=1)
+        class_end = datetime.date(
+            end_date["year"], end_date["month"], end_date["day"])
+        class_start_time = datetime.time(
+            start_time['hour'], start_time['minute'])
         class_end_time = datetime.time(end_time['hour'], end_time['minute'])
         new_classes.save()
 
@@ -104,10 +108,12 @@ def ListClasses(request, id):
     if request.method == "GET":
         studio = Studio.objects.get(id=id)
         now = datetime.now()
-        order_class = Class.objects.filter(studio=studio).order_by('date', 'start_time')
+        order_class = Class.objects.filter(
+            studio=studio).order_by('date', 'start_time')
         data = []
         for class_inst in order_class:
-            print(class_inst.date, now.date(), class_inst.start_time, now.time())
+            print(class_inst.date, now.date(),
+                  class_inst.start_time, now.time())
             if class_inst.date > now.date():
                 print("here")
                 class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
@@ -123,7 +129,8 @@ def EnrollClasses(request, id):
     if request.method == "POST":
         studio = Studio.objects.get(id=id)
         data = json.loads(request.body)
-        classes = Classes.objects.get(studio=studio, name=data.get("classname"))
+        classes = Classes.objects.get(
+            studio=studio, name=data.get("classname"))
         if classes.capacity == 0:
             return HttpResponse("Enrolling failed! The class is full!")
         else:
@@ -169,7 +176,8 @@ def DeleteClass(request):
         month = date_raw["month"]
         day = date_raw["day"]
         class_date = datetime.date(year, month, day)
-        class_to_delete = Class.objects.get(name=info.get("class"), date=class_date)
+        class_to_delete = Class.objects.get(
+            name=info.get("class"), date=class_date)
         user_class_lst.remove(class_to_delete)
         return HttpResponse("Class session delete successfully!")
 
@@ -191,15 +199,3 @@ def UserSchedule(request):
                 data.append(class_info)
 
         return JsonResponse(data, safe=False)
-
-
-
-
-
-
-
-
-
-
-
-
