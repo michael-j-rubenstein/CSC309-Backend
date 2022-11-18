@@ -9,7 +9,6 @@ import json
 
 
 class RegistrationAPIView(CreateAPIView):
-    # Allow any user (authenticated or not) to hit this endpoint.
     permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
 
@@ -27,23 +26,4 @@ class UserUpdateAPIView(RetrieveUpdateAPIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors)
-    # def get_object(self):
-    #     # authentication class assigns user to request
-    #     return self.request.user
-    #
-    # def put(self, request, *args, **kwargs):
-    #     return self.update(request, *args, **kwargs)
-#retriveupdateapiview
 
-# def post(self, request):
-#
-#     user = request.data.get('users', {})
-#     serializer = self.serializer_class(data=user)
-#     # print(serializer)
-#     serializer.is_valid(raise_exception=True)
-#     serializer.save()
-#     return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-# def get(self, request):
-#     Users = self.get_queryset()
-#     return Response(Users)
