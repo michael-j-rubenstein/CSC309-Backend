@@ -19,6 +19,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Users
+        fields = ('email', 'first_name', 'last_name', 'avatar', 'phone_number')
+
     # def validate(self, attrs):
     #     if attrs['password'] != attrs['password2']:
     #         raise serializers.ValidationError({"password": "Error: Password fields didn't match."})
