@@ -1,15 +1,17 @@
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from accounts.models import Users
 
 
 class SignupSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Users
         fields = ('username', 'password', 'email', 'first_name', 'last_name', 'avatar', 'phone_number', 'password2')
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"Password fields didn't match."})
+            raise serializers.ValidationError({"Error: The two password fields didn't match"})
 
         return attrs
 

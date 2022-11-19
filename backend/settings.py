@@ -26,6 +26,11 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+
+STRIPE_PUBLIC_KEY = 'pk_test_51M4vaVImlZKsDaR91aT4SXKvT9644gfrvGmdZjiCvelWswCwzq2HP7enXzpCpo2pE64fU2jBMsvB2ryyxuihYVih00zAa71ndr'
+STRIPE_SECRET_KEY = 'sk_test_51M4vaVImlZKsDaR9p9UT15Pjyfz9dckvxv4om44ZATDQkQLgqbOfDrdeM881EJKKpBTNDN3zzETgjgjVNEAAk2x900TxKakcjW'
+STRIPE_WEBHOOK_SECRET = ''
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -40,7 +45,8 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     'studios',
     'classes',
-    'accounts'
+    'accounts',
+    'subscriptions'
 ]
 
 # removed     'django.middleware.csrf.CsrfViewMiddleware',
