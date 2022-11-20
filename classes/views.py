@@ -2,6 +2,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from .models import Class, Classes, Keyword
 from studios.models import Studio
+
 from accounts.models import Users as User
 import json
 from datetime import datetime
