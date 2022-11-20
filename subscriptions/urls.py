@@ -1,12 +1,13 @@
 from django.urls import path, include
 from .views import SubscriptionOne, SubscriptionAll, CreateStripeCheckoutSession, \
     CreateSubscription, UpdateSubscription, SuccessCheckout, DeleteSubscription, \
-    GetPrevInvoices, GetUpcomingInvoice, UpdatePaymentMethod
+    GetPrevInvoices, GetUpcomingInvoice, UpdatePaymentMethod, Unsubscribe
 
 urlpatterns = [
     path('<int:pk>/', SubscriptionOne.as_view(), name='subscriptions_one'),
     path('subscribe/<int:pk>/', CreateStripeCheckoutSession.as_view(),
          name='checkout_session'),
+    path('unsubscribe/', Unsubscribe, name='subscription_unsubscribe'),
     path('', SubscriptionAll.as_view(), name='subscriptions_all'),
     path('add/', CreateSubscription, name='subscription_create'),
     path('update/<int:id>/', UpdateSubscription, name='subscription_update'),
