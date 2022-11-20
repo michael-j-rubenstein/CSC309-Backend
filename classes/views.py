@@ -2,21 +2,17 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from .models import Class, Classes, Keyword
 from studios.models import Studio
-from accounts.models import CustomUser as User
+from accounts.models import Users as User
 import json
 from datetime import datetime
 import datetime
 from rest_framework.decorators import api_view
+from subscriptions.models import StripeUser
 
 
+WEEK_DAY_CODE = {'monday': 0, 'tuesday': 1, 'wednesday': 2,
+                 'thursday': 3, 'friday': 4, 'saturday': 5, 'sunday': 6}
 
-WEEK_DAY_CODE = {'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3, 'friday': 4, 'saturday': 5, 'sunday': 6}
-
-# Create your views here.
-# def ListClassView(request, id):
-#     if request == 'GET':
-#         studio_id = id
-#         studio = Studio.objects.get(id=studio_id)
 
 
 @api_view(['POST'])
@@ -39,7 +35,8 @@ def CreateClasses(request, id):
         end_time = classes_info.get('end_time')
         end_date = classes_info.get('end_date')
 
-        new_classes = Classes(name=name, description=description, coach=coach, capacity=capacity, weekday=weekday, studio=studio)
+        new_classes = Classes(name=name, description=description,
+                              coach=coach, capacity=capacity, weekday=weekday, studio=studio)
         new_classes.save()
 
         for keyword in keywords:
@@ -57,9 +54,12 @@ def CreateClasses(request, id):
 
         today = datetime.date.today()
         week_day_code = WEEK_DAY_CODE[weekday]
-        class_date = today + datetime.timedelta(days=-today.weekday() + week_day_code, weeks=1)
-        class_end = datetime.date(end_date["year"], end_date["month"], end_date["day"])
-        class_start_time = datetime.time(start_time['hour'], start_time['minute'])
+        class_date = today + \
+            datetime.timedelta(days=-today.weekday() + week_day_code, weeks=1)
+        class_end = datetime.date(
+            end_date["year"], end_date["month"], end_date["day"])
+        class_start_time = datetime.time(
+            start_time['hour'], start_time['minute'])
         class_end_time = datetime.time(end_time['hour'], end_time['minute'])
         new_classes.save()
 
@@ -79,6 +79,8 @@ def CreateClasses(request, id):
 @csrf_exempt
 def RemoveClass(request):
     if request.method == "POST":
+        if not request.user.is_superuser:
+            return HttpResponse("Not Admin", status=403)
         class_info = json.loads(request.body)
         name = class_info.get('name')
         date = class_info.get('date')
@@ -91,6 +93,8 @@ def RemoveClass(request):
 @csrf_exempt
 def RemoveClasses(request):
     if request.method == "POST":
+        if not request.user.is_superuser:
+            return HttpResponse("Not Admin", status=403)
         class_info = json.loads(request.body)
         name = class_info.get('name')
         class_to_remove = Classes.objects.filter(name=name)
@@ -104,10 +108,12 @@ def ListClasses(request, id):
     if request.method == "GET":
         studio = Studio.objects.get(id=id)
         now = datetime.now()
-        order_class = Class.objects.filter(studio=studio).order_by('date', 'start_time')
+        order_class = Class.objects.filter(
+            studio=studio).order_by('date', 'start_time')
         data = []
         for class_inst in order_class:
-            print(class_inst.date, now.date(), class_inst.start_time, now.time())
+            print(class_inst.date, now.date(),
+                  class_inst.start_time, now.time())
             if class_inst.date > now.date():
                 print("here")
                 class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
@@ -121,17 +127,22 @@ def ListClasses(request, id):
 @csrf_exempt
 def EnrollClasses(request, id):
     if request.method == "POST":
+        if not request.user.is_authenticated:
+            return HttpResponse("Login in first to enroll a class!", status=403)
         studio = Studio.objects.get(id=id)
         data = json.loads(request.body)
-        classes = Classes.objects.get(studio=studio, name=data.get("classname"))
+        classes = Classes.objects.get(
+            studio=studio, name=data.get("classname"))
         if classes.capacity == 0:
             return HttpResponse("Enrolling failed! The class is full!")
         else:
-            username = data.get("username")
-            user = User.objects.get(username=username)
-            if user.subscription != 1:
+            # username = data.get("username")
+            # user = User.objects.get(username=username)
+            user = request.user
+            sub_user = StripeUser.objects.get(user_id=user)
+            if sub_user is None:
                 return HttpResponse("Need subscribe first to enroll the class!")
-            elif user.subscription == 1:
+            else:
                 new_cap = classes.capacity - 1
                 classes.capacity = new_cap
                 user.classes.add(classes)
@@ -145,8 +156,12 @@ def EnrollClasses(request, id):
 @csrf_exempt
 def DeleteClasses(request):
     if request.method == "POST":
+        if not request.user.is_authenticated:
+            return HttpResponse("Login in first to quit a class!", status=403)
         info = json.loads(request.body)
         user = User.objects.get(username=info.get("username"))
+        if user is None:
+            return HttpResponse("No such user!", status=404)
         user_classes_lst = user.classes_lst
         classes = Classes.objects.get(name=info.get("classes"))
         user_classes_lst.remove(classes)
@@ -159,17 +174,20 @@ def DeleteClasses(request):
 @csrf_exempt
 def DeleteClass(request):
     if request.method == "POST":
+        if not request.user.is_authenticated:
+            return HttpResponse("Login in first to delete a class!", status=403)
         info = json.loads(request.body)
         user = User.objects.get(username=info.get("username"))
+        if user is None:
+            return HttpResponse("No such user!", status=404)
         user_class_lst = user.class_lst
         date_raw = info.get("date")
-        print(date_raw)
-        print(date_raw["year"], date_raw["month"], date_raw["day"])
         year = date_raw["year"]
         month = date_raw["month"]
         day = date_raw["day"]
         class_date = datetime.date(year, month, day)
-        class_to_delete = Class.objects.get(name=info.get("class"), date=class_date)
+        class_to_delete = Class.objects.get(
+            name=info.get("class"), date=class_date)
         user_class_lst.remove(class_to_delete)
         return HttpResponse("Class session delete successfully!")
 
@@ -178,8 +196,11 @@ def DeleteClass(request):
 @csrf_exempt
 def UserSchedule(request):
     if request.method == "GET":
-        info = json.loads(request.body)
-        user = User.objects.get(username=info.get("username"))
+        if not request.user.is_authenticated:
+            return HttpResponse("Login in first to view schedule!", status=403)
+        # info = json.loads(request.body)
+        # user = User.objects.get(username=info.get("username"))
+        user = request.user
         now = datetime.datetime.now()
         print(request.user)
         order_class = user.class_lst.order_by('date', 'start_time')
@@ -191,15 +212,3 @@ def UserSchedule(request):
                 data.append(class_info)
 
         return JsonResponse(data, safe=False)
-
-
-
-
-
-
-
-
-
-
-
-
