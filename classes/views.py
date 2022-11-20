@@ -65,7 +65,7 @@ def CreateClasses(request, id):
 
         while class_date < class_end:
             new_class = Class(name=name, start_time=class_start_time, end_time=class_end_time, date=class_date,
-                              studio=studio, classes=new_classes)
+                              studio=studio, classes=new_classes, coach=coach)
             new_class.save()
             # new_classes.class_lst.add(new_class)
             class_date = class_date + datetime.timedelta(days=7)
@@ -212,3 +212,63 @@ def UserSchedule(request):
                 data.append(class_info)
 
         return JsonResponse(data, safe=False)
+
+
+@api_view(["GET"])
+@csrf_exempt
+def SearchClass(request, id):
+    if request.method == "GET":
+        studio = Studio.objects.get(id=id)
+        search_key = json.loads(request.body)
+        coach = search_key.get("coach")
+        class_name = search_key.get("class")
+
+        class_lst = Class.objects.filter(studio=studio)
+        if coach is not None:
+            class_lst = class_lst.filter(coach=coach)
+
+        if class_name is not None:
+            class_lst = class_lst.filter(name=class_name)
+
+        date_raw = search_key.get("date")
+        if date_raw is not None:
+            date = datetime.date(date_raw["year"], date_raw["month"], date_raw["day"])
+            class_lst = class_lst.filter(date=date)
+
+        data = []
+
+        start_raw = search_key.get("start")
+        end_raw = search_key.get("end")
+        if start_raw is not None and end_raw is not None:
+            start = datetime.time(start_raw["hour"], start_raw["minute"])
+            end = datetime.time(end_raw["hour"], end_raw["minute"])
+            for class_inst in class_lst:
+                if class_inst.start_time > start and class_inst.end_time < end:
+                    class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
+                                  "end_time": class_inst.end_time, "date": class_inst.date}
+                    data.append(class_info)
+
+        if start_raw is not None and end_raw is None:
+            start = datetime.time(start_raw["hour"], start_raw["minute"])
+            for class_inst in class_lst:
+                if class_inst.start_time > start:
+                    class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
+                                  "end_time": class_inst.end_time, "date": class_inst.date}
+                    data.append(class_info)
+
+        if start_raw is None and end_raw is not None:
+            end = datetime.time(end_raw["hour"], end_raw["minute"])
+            for class_inst in class_lst:
+                if class_inst.end_time < end:
+                    class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
+                                  "end_time": class_inst.end_time, "date": class_inst.date}
+                    data.append(class_info)
+
+        if start_raw is None and end_raw is None:
+            for class_inst in class_lst:
+                class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
+                              "end_time": class_inst.end_time, "date": class_inst.date}
+                data.append(class_info)
+
+        return JsonResponse(data, safe=False)
+
