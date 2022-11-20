@@ -139,12 +139,12 @@ def CreateSubscription(request):
         except Exception as e:
             return JsonResponse({"error": str(e)})
 
-        return JsonResponse({
+        return JsonResponse({"success": {
             "id": subscription_id,
             "name": name,
             "amount": amount,
             "type": "Monthly" if type == 'M' else "Yearly"
-        })
+        }})
 
 
 @api_view(["POST"])
@@ -211,7 +211,7 @@ def UpdateSubscription(request, id):
 
             return JsonResponse({"error": str(e)})
 
-        return JsonResponse({"success": subscription.id})
+        return JsonResponse({"success": "You have successfully updated Subscription " + str(subscription.id)})
 
 
 @ api_view(["POST"])
