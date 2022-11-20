@@ -83,8 +83,6 @@ def SuccessCheckout(request, session_id):
         user_id = request.user
         subscription_id = session.metadata.product_id
 
-        print(request.user)
-
         new_user = StripeUser(user_id=user_id,
                               stripe_customer_id=customer_id, subscription_id=subscription_id)
         new_user_log = StripeUserLog(
@@ -188,11 +186,10 @@ def UpdateSubscription(request, id):
 
             if isinstance(amount, float) and type in {'M', 'Y'}:
                 subscription.amount = amount
-                print('asdad', amount, isinstance(
-                    amount, float), subscription.price_id)
+
                 stripe.Price.modify(str(subscription.price_id),
                                     active=False)
-                print('asdad', amount, isinstance(amount, float))
+
                 new_price_id = stripe.Price.create(
                     nickname=name,
                     product=str(subscription.id),
@@ -239,7 +236,7 @@ def DeleteSubscription(request, id):
 
             if len(stripe_customer) != 0:
                 for subscription in all_subscriptions:
-                    print(subscription.customer)
+
                     if subscription.customer in stripe_customer_ids:
                         wanted_subscriptions.append(subscription)
 
@@ -269,45 +266,41 @@ def DeleteSubscription(request, id):
 def GetPrevInvoices(request):
 
     if request.method == 'GET' and request.user.is_authenticated:
-        print("asdad")
 
-    user_logs = StripeUserLog.objects.all().filter(user_id=request.user.id)
+        user_logs = StripeUserLog.objects.all().filter(user_id=request.user.id)
 
-    stripe_customer_ids = []
+        stripe_customer_ids = []
 
-    for log in user_logs:
-        stripe_customer_ids.append(log.stripe_customer_id)
+        for log in user_logs:
+            stripe_customer_ids.append(log.stripe_customer_id)
 
-    print(stripe_customer_ids)
+        all_invoices = []
 
-    all_invoices = []
+        try:
 
-    try:
-
-        for customer_id in stripe_customer_ids:
-            invoices = stripe.Invoice.list(customer=customer_id).data
-            for invoice in invoices:
-                print(invoice)
-                invoice_data = {
-                    "invoice_id": invoice.id,
-                    "invoice_total": invoice.total,
-                    "amount_paid": invoice.amount_paid,
-                    "customer": invoice.customer,
-                    "invoice_link": invoice.hosted_invoice_url,
-                    "invoice_period": invoice.lines.data[0].period,
-                    "plan": {
-                        "active": invoice.lines.data[0].plan.active,
-                        "name": invoice.lines.data[0].plan.nickname,
-                        "type": invoice.lines.data[0].plan.interval
+            for customer_id in stripe_customer_ids:
+                invoices = stripe.Invoice.list(customer=customer_id).data
+                for invoice in invoices:
+                    invoice_data = {
+                        "invoice_id": invoice.id,
+                        "invoice_total": invoice.total,
+                        "amount_paid": invoice.amount_paid,
+                        "customer": invoice.customer,
+                        "invoice_link": invoice.hosted_invoice_url,
+                        "invoice_period": invoice.lines.data[0].period,
+                        "plan": {
+                            "active": invoice.lines.data[0].plan.active,
+                            "name": invoice.lines.data[0].plan.nickname,
+                            "type": invoice.lines.data[0].plan.interval
+                        }
                     }
-                }
-                all_invoices.append(invoice_data)
+                    all_invoices.append(invoice_data)
 
-    except Exception as e:
+        except Exception as e:
 
-        return JsonResponse({"error": str(e)})
+            return JsonResponse({"error": str(e)})
 
-    return JsonResponse({"invoices": all_invoices})
+        return JsonResponse({"invoices": all_invoices})
 
 
 @ api_view(["GET"])
