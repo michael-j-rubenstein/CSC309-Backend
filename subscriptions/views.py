@@ -46,27 +46,20 @@ class CreateStripeCheckoutSession(APIView):
         try:
             subscription = Subscription.objects.get(id=subscription_id)
             checkout_session = stripe.checkout.Session.create(
-                client_reference_id=1,
+                client_reference_id=request.user.id,
                 line_items=[
                     {
                         'price': subscription.price_id,
-                        # 'price_data': {
-                        #     'currency': 'cad',
-                        #     'unit_amount': int(subscription.amount * 100),
-                        #     'product_data': {
-                        #         'name': subscription.name
-                        #     }
-                        # },
                         'quantity': 1
                     }
                 ],
                 mode='subscription',
                 metadata={
-                    'user_id': 1,
+                    'user_id': request.user.id,
                     'product_id': subscription.id
                 },
-                success_url='http://127.0.0.1:8000/subscriptions/checkout/success/{CHECKOUT_SESSION_ID}',
-                cancel_url='http://127.0.0.1:8000/subscriptions/checkout?success=false'
+                success_url='http://127.0.0.1:8000/subscriptions/subscribe/success/{CHECKOUT_SESSION_ID}',
+                cancel_url='http://127.0.0.1:8000/subscriptions/subscribe?success=false'
             )
             # return redirect(checkout_session.url)
             return JsonResponse({'sessionUrl': checkout_session.url})
@@ -93,19 +86,6 @@ def SuccessCheckout(request, session_id):
             user=user_id, stripe_customer_id=customer_id)
         new_user.save()
         new_user_log.save()
-        # invoices = stripe.Invoice.list(customer=customer_id).data
-        # for invoice in invoices:
-        #     invoice_data = {
-        #         "invoice_id": invoice.id,
-        #         "invoice_total": invoice.total,
-        #         "amount_paid": invoice.amount_paid,
-        #         "customer": invoice.customer,
-        #         "invoice_link": invoice.hosted_invoice_url,
-        #         "invoice_period": invoice.lines.data[0].period
-        #     }
-        #     print(invoice_data)
-        # for subscription in subscription_list:
-        #     print("-------------------------------")
         return JsonResponse({"success": session_id})
 
 
@@ -142,7 +122,7 @@ def CreateSubscription(request):
             nickname=name,
             product=str(subscription_id),
             currency="cad",
-            unit_amount=int(float(amount) * 100),
+            unit_amount=int(amount * 100),
             recurring={"interval": "month" if type == 'M' else 'year'},
         )
         subscription.price_id = price_id.id
@@ -215,9 +195,13 @@ def DeleteSubscription(request, id):
 
         stripe_customer = StripeUser.objects.all().filter(subscription=id)
 
+        stripe_customer_ids = {
+            customer.stripe_customer_id for customer in stripe_customer}
+
         if len(stripe_customer) != 0:
             for subscription in all_subscriptions:
-                if subscription.customer == stripe_customer.stripe_customer_id:
+                print(subscription.customer)
+                if subscription.customer in stripe_customer_ids:
                     wanted_subscriptions.append(subscription)
 
         for subscription in wanted_subscriptions:
@@ -240,10 +224,11 @@ def DeleteSubscription(request, id):
 
 @api_view(["GET"])
 def GetPrevInvoices(request):
-    if request.user.is_authenticated:
+
+    if request.method == 'GET' and request.user.is_authenticated:
         print("asdad")
 
-    user_logs = StripeUserLog.objects.all().filter(id=request.user.id)
+    user_logs = StripeUserLog.objects.all().filter(user_id=request.user.id)
 
     stripe_customer_ids = []
 
@@ -273,3 +258,93 @@ def GetPrevInvoices(request):
             }
             all_invoices.append(invoice_data)
     return JsonResponse({"invoices": all_invoices})
+
+
+@api_view(["GET"])
+def GetUpcomingInvoice(request):
+    if request.method == 'GET':
+
+        stripe_users = StripeUser.objects.all().filter(user_id=request.user.id)
+
+        if len(stripe_users) == 0:
+            return JsonResponse({"error": "User does not have an active subscription"})
+
+        customer_id = stripe_users[0].stripe_customer_id
+
+        invoice = stripe.Invoice.upcoming(customer=customer_id)
+
+        invoice_data = {
+            "invoice_id": None,
+            "invoice_total": invoice.total,
+            "amount_paid": invoice.amount_paid,
+            "customer": invoice.customer,
+            "invoice_link": None,
+            "invoice_period": invoice.lines.data[0].period,
+            "plan": {
+                "active": invoice.lines.data[0].plan.active,
+                "name": invoice.lines.data[0].plan.nickname,
+                "type": invoice.lines.data[0].plan.interval
+            }
+        }
+
+        return JsonResponse(invoice_data)
+
+
+@api_view(["POST"])
+def UpdatePaymentMethod(request):
+    if request.method == 'POST':
+
+        payload = json.loads(request.body)
+        number = payload.get('number', '')
+        exp_month = payload.get('exp_month', '')
+        exp_year = payload.get('exp_year', '')
+        cvc = payload.get('cvc', '')
+
+        if number == '' or exp_month == '' or exp_year == '' or cvc == '':
+            raise ValidationError
+
+        try:
+            stripe_users = StripeUser.objects.all().filter(user_id=request.user.id)
+
+            if len(stripe_users) == 0:
+                return JsonResponse({"error": "User does not have an active subscription"})
+
+            customer_id = stripe_users[0].stripe_customer_id
+
+            all_subscriptions = stripe.Subscription.list()
+
+            subscription_id = ""
+
+            for subscription in all_subscriptions:
+                if subscription.customer == customer_id:
+                    subscription_id = subscription.id
+                    break
+
+            new_payment_method = stripe.PaymentMethod.create(
+                type="card",
+                card={
+                    "number": number,
+                    "exp_month": exp_month,
+                    "exp_year": exp_year,
+                    "cvc": str(cvc)
+                }
+            )
+
+            stripe.PaymentMethod.attach(
+                new_payment_method.id, customer=customer_id)
+
+            stripe.Customer.modify(
+                customer_id,
+                invoice_settings={
+                    "default_payment_method": new_payment_method.id
+                }
+            )
+
+            stripe.Subscription.modify(
+                subscription_id,
+                default_payment_method=new_payment_method.id
+            )
+        except Exception as e:
+            return JsonResponse({"error": str(e)})
+
+        return JsonResponse({"success": "Card has been updated!"})
