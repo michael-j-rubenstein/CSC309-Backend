@@ -21,7 +21,7 @@ class Subscription(models.Model):
         return str(self.name) + " ($" + str(self.amount) + "/ " + str(self.type) + ")"
 
 
-# TODO: Need to have another table that maps users to subscriptions or can have it in user table
+# Current User Subscriptions
 
 class StripeUser(models.Model):
     user_id = models.OneToOneField(Users, on_delete=models.CASCADE)
@@ -31,3 +31,11 @@ class StripeUser(models.Model):
 
     def __str__(self):
         return str(self.user_id) + " " + str(self.subscription)
+
+
+# Stripe User Customer Id log for future invoice references
+
+class StripeUserLog(models.Model):
+    user = models.ForeignKey(Users, on_delete=models.CASCADE)
+    stripe_customer_id = models.CharField(
+        max_length=200, null=False, unique=True)
