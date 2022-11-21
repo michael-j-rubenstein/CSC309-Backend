@@ -84,7 +84,8 @@ def RemoveClass(request):
             return HttpResponse("Not Admin", status=403)
         class_info = json.loads(request.body)
         name = class_info.get('name')
-        date = class_info.get('date')
+        date_raw = class_info.get('date')
+        date = datetime.date(date_raw["year"], date_raw["month"], date_raw["day"])
         class_to_remove = Class.objects.filter(name=name, date=date)
         class_to_remove.delete()
         return HttpResponse("Class Cancelled Successfully!")
@@ -157,14 +158,15 @@ def EnrollClasses(request, id):
 @csrf_exempt
 def DeleteClasses(request):
     if request.method == "POST":
-        if not request.user.is_authenticated:
+        # user = User.objects.get(username=info.get("username"))
+        user = request.user
+        if not user.is_authenticated:
             return HttpResponse("Login in first to quit a class!", status=403)
         info = json.loads(request.body)
-        user = User.objects.get(username=info.get("username"))
         if user is None:
             return HttpResponse("No such user!", status=404)
         user_classes_lst = user.classes_lst
-        classes = Classes.objects.get(name=info.get("classes"))
+        classes = Classes.objects.get(name=info.get("classname"))
         user_classes_lst.remove(classes)
         new_cap = classes.capacity + 1
         classes.capacity = new_cap
@@ -175,10 +177,10 @@ def DeleteClasses(request):
 @csrf_exempt
 def DeleteClass(request):
     if request.method == "POST":
-        if not request.user.is_authenticated:
+        user = request.user
+        if not user.is_authenticated:
             return HttpResponse("Login in first to delete a class!", status=403)
         info = json.loads(request.body)
-        user = User.objects.get(username=info.get("username"))
         if user is None:
             return HttpResponse("No such user!", status=404)
         user_class_lst = user.class_lst
@@ -188,7 +190,7 @@ def DeleteClass(request):
         day = date_raw["day"]
         class_date = datetime.date(year, month, day)
         class_to_delete = Class.objects.get(
-            name=info.get("class"), date=class_date)
+            name=info.get("classname"), date=class_date)
         user_class_lst.remove(class_to_delete)
         return HttpResponse("Class session delete successfully!")
 
@@ -222,7 +224,7 @@ def SearchClass(request, id):
         studio = Studio.objects.get(id=id)
         search_key = json.loads(request.body)
         coach = search_key.get("coach")
-        class_name = search_key.get("class")
+        class_name = search_key.get("classname")
 
         class_lst = Class.objects.filter(studio=studio)
         if coach is not None:
