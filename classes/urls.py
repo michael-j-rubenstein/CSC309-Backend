@@ -1,5 +1,5 @@
 from django.urls import path, include
-from classes.views import CreateClasses, ListClasses, RemoveClass, RemoveClasses, EnrollClasses, DeleteClass, DeleteClasses, UserSchedule
+from classes.views import CreateClasses, ListClasses, RemoveClass, RemoveClasses, EnrollClasses, DeleteClass, DeleteClasses, UserSchedule, SearchClass
 
 app_name = 'classes'
 
@@ -12,5 +12,6 @@ urlpatterns = [
     path('<int:id>/enrollclass/', EnrollClasses, name="enroll_classes"),
     path('deleteclasses/', DeleteClasses, name="delete_classes"),
     path('deleteclass/', DeleteClass, name="delete_class"),
-    path('schedule/', UserSchedule, name="user_schedule")
+    path('schedule/', UserSchedule, name="user_schedule"),
+    path('<int:id>/searchclass/', SearchClass, name="search_class")
 ]

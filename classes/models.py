@@ -26,6 +26,7 @@ class Class(models.Model):
     date = models.DateField()
     classes = models.ForeignKey(Classes, on_delete=CASCADE, null=True)
     studio = models.ForeignKey(Studio, on_delete=CASCADE, null=True)
+    coach = models.CharField(max_length=50, null=False)
 
 
 
