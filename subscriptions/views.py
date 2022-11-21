@@ -62,7 +62,7 @@ class CreateStripeCheckoutSession(APIView):
                     'product_id': subscription.id
                 },
                 success_url='http://127.0.0.1:8000/subscriptions/subscribe/success/{CHECKOUT_SESSION_ID}',
-                cancel_url='http://127.0.0.1:8000/subscriptions/subscribe?success=false'
+                cancel_url='http://127.0.0.1:8000/subscriptions/subscribe/failed'
             )
 
             return JsonResponse({'sessionUrl': checkout_session.url})
@@ -90,6 +90,12 @@ def SuccessCheckout(request, session_id):
         new_user.save()
         new_user_log.save()
         return JsonResponse({"success": session_id})
+
+
+@api_view(["GET"])
+def UnsuccessfulCheckout(request):
+    if request.method == 'GET' and request.user.is_authenticated:
+        return JsonResponse({"error": "Payment was unsuccessful, please try again later"})
 
 
 @api_view(["POST"])
