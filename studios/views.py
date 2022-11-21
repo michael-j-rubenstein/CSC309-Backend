@@ -39,6 +39,7 @@ def AllStudios(request):
 
         for s in studio_queryset:
 
+            # check filtering conditions
             name_satisfied = False if filter_name != '' else True
             ammenities_satisfied = False if filter_ammenities != '' else True
             classes_satisfied = False if filter_classes != '' else True
@@ -75,6 +76,7 @@ def AllStudios(request):
 
             all_conditions_satisfied = name_satisfied and ammenities_satisfied and classes_satisfied and coaches_satisfied
 
+            # if exists one condition not satisfied, then continue to next studio
             if not all_conditions_satisfied:
                 continue
 
