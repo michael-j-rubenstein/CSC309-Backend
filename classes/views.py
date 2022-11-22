@@ -225,8 +225,13 @@ def DeleteClasses(request):
         if user is None:
             return HttpResponse("No such user!", status=404)
         user_classes_lst = user.classes
+        user_class_lst = user.class_lst
         classes = Classes.objects.get(name=info.get("classname"))
         user_classes_lst.remove(classes)
+        class_lst = Class.objects.filter(name=info.get("classname"))
+        for class_inst in class_lst:
+            user_class_lst.remove(class_inst)
+
         new_cap = classes.capacity + 1
         classes.capacity = new_cap
         return HttpResponse("Class dropped successfully!")
