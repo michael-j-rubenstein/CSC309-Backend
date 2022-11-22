@@ -2,18 +2,18 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from .models import Class, Classes, Keyword
 from studios.models import Studio
+import stripe
+import time
 
 from accounts.models import Users as User
 import json
 from datetime import datetime
 import datetime
 from rest_framework.decorators import api_view
-from subscriptions.models import StripeUser
-
+from subscriptions.models import StripeUser, StripeUserLog
 
 WEEK_DAY_CODE = {'monday': 0, 'tuesday': 1, 'wednesday': 2,
                  'thursday': 3, 'friday': 4, 'saturday': 5, 'sunday': 6}
-
 
 
 @api_view(['POST'])
@@ -25,7 +25,6 @@ def CreateClasses(request, id):
         studio_id = id
         studio = Studio.objects.get(id=studio_id)
         classes_info = json.loads(request.body)
-        print("body", classes_info)
         name = classes_info.get('name')
         description = classes_info.get('description')
         coach = classes_info.get('coach')
@@ -56,7 +55,7 @@ def CreateClasses(request, id):
         today = datetime.date.today()
         week_day_code = WEEK_DAY_CODE[weekday]
         class_date = today + \
-            datetime.timedelta(days=-today.weekday() + week_day_code, weeks=1)
+                     datetime.timedelta(days=-today.weekday() + week_day_code, weeks=1)
         class_end = datetime.date(
             end_date["year"], end_date["month"], end_date["day"])
         class_start_time = datetime.time(
@@ -74,6 +73,37 @@ def CreateClasses(request, id):
         new_classes.save()
 
         return HttpResponse("Class Created Successfully")
+
+
+@api_view(['POST'])
+@csrf_exempt
+def EditClasses(request, id):
+    if request.method == "POST":
+        if not request.user.is_superuser:
+            return HttpResponse("Not Admin", status=403)
+        studio_id = id
+        studio = Studio.objects.get(id=studio_id)
+        classes_info = json.loads(request.body)
+        name = classes_info.get('name')
+        description = classes_info.get('description')
+        coach = classes_info.get('coach')
+        capacity = int(classes_info.get('capacity'))
+
+        classes = Classes.objects.get(studio=studio, name=name)
+        print(classes.coach)
+
+        if description is not None:
+            classes.description = description
+
+        if coach is not None:
+            classes.coach = coach
+
+        if capacity is not None:
+            classes.capacity = capacity
+
+        classes.save()
+
+        return HttpResponse("Edit Class Successfully!")
 
 
 @api_view(["POST"])
@@ -109,7 +139,7 @@ def RemoveClasses(request):
 def ListClasses(request, id):
     if request.method == "GET":
         studio = Studio.objects.get(id=id)
-        now = datetime.now()
+        now = datetime.datetime.now()
         order_class = Class.objects.filter(
             studio=studio).order_by('date', 'start_time')
         data = []
@@ -141,8 +171,29 @@ def EnrollClasses(request, id):
             # username = data.get("username")
             # user = User.objects.get(username=username)
             user = request.user
-            sub_user = StripeUser.objects.get(user_id=user)
-            if sub_user is None:
+            # sub_user = StripeUser.objects.get(user_id=user)
+
+            user_logs = StripeUserLog.objects.all().filter(user_id=request.user.id)
+
+            stripe_customer_ids = []
+
+            for log in user_logs:
+                stripe_customer_ids.append(log.stripe_customer_id)
+
+            try:
+                sub = False
+                for customer_id in stripe_customer_ids:
+                    invoices = stripe.Invoice.list(customer=customer_id).data
+                    for invoice in invoices:
+                        curr_period_end = invoice.lines.data[0].period["end"]
+                        curr_time = time.time()
+                        if curr_period_end > curr_time:
+                            sub = True
+                            break
+            except Exception as e:
+                return JsonResponse({"error": str(e)})
+
+            if sub is False:
                 return HttpResponse("Need subscribe first to enroll the class!")
             else:
                 new_cap = classes.capacity - 1
@@ -165,7 +216,7 @@ def DeleteClasses(request):
         info = json.loads(request.body)
         if user is None:
             return HttpResponse("No such user!", status=404)
-        user_classes_lst = user.classes_lst
+        user_classes_lst = user.classes
         classes = Classes.objects.get(name=info.get("classname"))
         user_classes_lst.remove(classes)
         new_cap = classes.capacity + 1
@@ -274,4 +325,3 @@ def SearchClass(request, id):
                 data.append(class_info)
 
         return JsonResponse(data, safe=False)
-
