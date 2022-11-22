@@ -3,12 +3,12 @@ from django.http import JsonResponse
 
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView, ListAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from .models import Subscription, StripeUser, StripeUserLog
 from .serializers import SubscriptionSerializer
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework import permissions
 from rest_framework.exceptions import ValidationError
 
@@ -73,7 +73,7 @@ class CreateStripeCheckoutSession(APIView):
 
 @api_view(["GET"])
 def SuccessCheckout(request, session_id):
-    if request.method == 'GET':
+    if request.method == 'GET' and request.user.is_authenticated:
 
         session = stripe.checkout.Session.retrieve(session_id)
 
@@ -82,6 +82,9 @@ def SuccessCheckout(request, session_id):
         customer_id = customer.id
         user_id = request.user
         subscription_id = session.metadata.product_id
+
+        if len(StripeUser.objects.all().filter(id=request.user.id)) > 0:
+            return JsonResponse({"error": "User subscription created already"})
 
         new_user = StripeUser(user_id=user_id,
                               stripe_customer_id=customer_id, subscription_id=subscription_id)
