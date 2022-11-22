@@ -8,5 +8,7 @@
 2. run startup.sh by ./startup.sh to set up environment.
 3. run run.sh by ./run.sh to runserver
 
-**Step 3: Making Request:**
+**Step 3: Creating the Authentication Tokens:**
+
+1. Change the ``admintoken`` and ``token`` variables in the collection variables tab in Postman by copying and pasting the access tokens generated from the "Login (Admin)" and "Login(Normal)" requests 
 
