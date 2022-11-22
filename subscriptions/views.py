@@ -73,7 +73,7 @@ class CreateStripeCheckoutSession(APIView):
 
 @api_view(["GET"])
 def SuccessCheckout(request, session_id):
-    if request.method == 'GET' and request.user.is_authenticated:
+    if request.method == 'GET':
 
         session = stripe.checkout.Session.retrieve(session_id)
 
