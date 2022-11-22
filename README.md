@@ -2,16 +2,11 @@
 
 **Step 1: Pull code into local repo**
 
-**Step 2: Setup Virtual Enviornment:**
+**Step 2: Setup Virtual Enviornment and run server:**
 
 1. cd into the project directory
-2. Create the virtual enviornment by running `pip3 install virtualenv`
-3. Make sure your current version of python is 3.10 by running `python3 --version`
-4. Initialize virtual enviornment by running `` virtualenv -p `which python3` venv ``
-5. Activate enviornment by running `source venv/bin/activate` on mac, or `source venv/Scripts\Activate` on windows
-6. Install dependencies by running `pip install -r requirements.txt`
+2. run startup.sh by ./startup.sh to set up environment.
+3. run run.sh by ./run.sh to runserver
 
-Should be set up!
+**Step 3: Making Request:**
 
-**Step 3: Running Django Server**
-`./manage.py runserver`
