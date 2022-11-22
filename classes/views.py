@@ -24,6 +24,8 @@ def CreateClasses(request, id):
             return HttpResponse("Not Admin", status=403)
         studio_id = id
         studio = Studio.objects.get(id=studio_id)
+        if studio is None:
+            return HttpResponse("No studio found", status=404)
         classes_info = json.loads(request.body)
         name = classes_info.get('name')
         description = classes_info.get('description')
@@ -83,6 +85,8 @@ def EditClasses(request, id):
             return HttpResponse("Not Admin", status=403)
         studio_id = id
         studio = Studio.objects.get(id=studio_id)
+        if studio is None:
+            return HttpResponse("No studio found", status=404)
         classes_info = json.loads(request.body)
         name = classes_info.get('name')
         description = classes_info.get('description')
@@ -139,6 +143,8 @@ def RemoveClasses(request):
 def ListClasses(request, id):
     if request.method == "GET":
         studio = Studio.objects.get(id=id)
+        if studio is None:
+            return HttpResponse("No studio found", status=404)
         now = datetime.datetime.now()
         order_class = Class.objects.filter(
             studio=studio).order_by('date', 'start_time')
@@ -162,6 +168,8 @@ def EnrollClasses(request, id):
         if not request.user.is_authenticated:
             return HttpResponse("Login in first to enroll a class!", status=403)
         studio = Studio.objects.get(id=id)
+        if studio is None:
+            return HttpResponse("No studio found", status=404)
         data = json.loads(request.body)
         classes = Classes.objects.get(
             studio=studio, name=data.get("classname"))
@@ -273,6 +281,8 @@ def UserSchedule(request):
 def SearchClass(request, id):
     if request.method == "GET":
         studio = Studio.objects.get(id=id)
+        if studio is None:
+            return HttpResponse("No studio found", status=404)
         search_key = json.loads(request.body)
         coach = search_key.get("coach")
         class_name = search_key.get("classname")
