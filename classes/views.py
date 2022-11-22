@@ -255,6 +255,8 @@ def DeleteClass(request):
         class_date = datetime.date(year, month, day)
         class_to_delete = Class.objects.get(
             name=info.get("classname"), date=class_date)
+        if class_to_delete is None:
+            return HttpResponse("No class session found!")
         user_class_lst.remove(class_to_delete)
         return HttpResponse("Class session delete successfully!")
 
