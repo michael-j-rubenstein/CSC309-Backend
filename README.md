@@ -10,5 +10,5 @@
 
 **Step 3: Creating the Authentication Tokens:**
 
-1. Change the ``admintoken`` and ``token`` variables in the collection variables tab in Postman by copying and pasting the access tokens generated from the "Login (Admin)" and "Login(Normal)" requests 
+1. Change the ``admintoken`` and ``token`` variables in the collection variables tab in Postman by copying and pasting the access tokens generated from the "Login (Admin)" and "Login (Normal)" requests 
 
