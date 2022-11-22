@@ -94,13 +94,15 @@ def EditClasses(request, id):
         capacity = int(classes_info.get('capacity'))
 
         classes = Classes.objects.get(studio=studio, name=name)
-        print(classes.coach)
+        class_lst = Class.objects.get(studio=studio, name=name)
 
         if description is not None:
             classes.description = description
 
         if coach is not None:
             classes.coach = coach
+            for class_inst in class_lst:
+                class_inst.coach = coach
 
         if capacity is not None:
             classes.capacity = capacity
