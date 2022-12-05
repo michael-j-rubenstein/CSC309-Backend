@@ -1,10 +1,8 @@
-from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.generics import CreateAPIView, RetrieveUpdateAPIView
 from .models import Users
 from .serializers import SignupSerializer, ProfileSerializer
-import json
 
 
 class RegistrationAPIView(CreateAPIView):
