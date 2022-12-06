@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from .models import Class, Classes, Keyword
@@ -26,8 +27,11 @@ def CreateClasses(request, id):
         studio = Studio.objects.get(id=studio_id)
         if studio is None:
             return HttpResponse("No studio found", status=404)
-        classes_info = json.loads(request.body)
+        classes_info = json.loads(request.body).get("body")
         name = classes_info.get('name')
+        if Classes.objects.filter(name=name).exists():
+            return HttpResponse("This class name already exists")
+
         description = classes_info.get('description')
         coach = classes_info.get('coach')
         capacity = int(classes_info.get('capacity'))
@@ -118,10 +122,14 @@ def RemoveClass(request):
     if request.method == "POST":
         if not request.user.is_superuser:
             return HttpResponse("Not Admin", status=403)
-        class_info = json.loads(request.body)
-        name = class_info.get('name')
+        class_info = json.loads(request.body).get('body')
+        print(class_info)
+        name = class_info.get('classname')
         date_raw = class_info.get('date')
+        print("date raw", date_raw)
         date = datetime.date(date_raw["year"], date_raw["month"], date_raw["day"])
+        if not Class.objects.filter(name=name, date=date).exists():
+            return HttpResponse("This time slot or class name does not exist!")
         class_to_remove = Class.objects.filter(name=name, date=date)
         class_to_remove.delete()
         return HttpResponse("Class Cancelled Successfully!")
@@ -133,8 +141,10 @@ def RemoveClasses(request):
     if request.method == "POST":
         if not request.user.is_superuser:
             return HttpResponse("Not Admin", status=403)
-        class_info = json.loads(request.body)
+        class_info = json.loads(request.body).get('body')
         name = class_info.get('name')
+        if not Classes.objects.filter(name=name).exists():
+            return HttpResponse("No such class exists!")
         class_to_remove = Classes.objects.filter(name=name)
         class_to_remove.delete()
         return HttpResponse("Classes Cancelled Successfully!")
