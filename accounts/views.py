@@ -16,6 +16,7 @@ class UserUpdateAPIView(RetrieveUpdateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = ProfileSerializer
 
+
     def update(self, request, *args, **kwargs):
         user = request.user
         serializer = self.get_serializer(user, data=request.data, partial=True)

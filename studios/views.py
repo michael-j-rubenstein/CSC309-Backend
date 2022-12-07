@@ -1,11 +1,12 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 
 from rest_framework.decorators import api_view
 from rest_framework.generics import get_object_or_404
 from rest_framework.exceptions import ValidationError
 
-from .models import Studio
+from .models import Studio, AmmenitySet, ImageSet
+from classes.models import Classes, Class
 
 import json
 import math
@@ -27,11 +28,58 @@ def AllStudios(request):
 
         studio_queryset = Studio.objects.all()
 
+        filter_name = payload.get("name", '')
+        filter_amenities = payload.get("amenities", '')
+        filter_classes = payload.get("classes", '')
+        filter_coaches = payload.get("coaches", '')
+
         response = {}
 
         studios = []
 
         for s in studio_queryset:
+
+            # check filtering conditions
+            name_satisfied = False if filter_name != '' else True
+            amenities_satisfied = False if filter_amenities != '' else True
+            classes_satisfied = False if filter_classes != '' else True
+            coaches_satisfied = False if filter_coaches != '' else True
+
+            if not name_satisfied and s.name == filter_name:
+                name_satisfied = True
+
+            if not amenities_satisfied:
+                all_amenities = s.ammenities.all()
+                satisfied = True
+                for ammenity in filter_amenities:
+                    if len(all_amenities.filter(type=ammenity)) == 0:
+                        satisfied = False
+                        break
+                amenities_satisfied = True if satisfied else False
+
+            if not classes_satisfied:
+                studio_classes = Classes.objects.all().filter(studio=s.id)
+                satisfied = True
+                for wanted_class in filter_classes:
+                    if len(studio_classes.filter(name=wanted_class)) == 0:
+                        satisfied = False
+                        break
+                classes_satisfied = True if satisfied else False
+
+            if not coaches_satisfied:
+                studio_classes = Classes.objects.all().filter(studio=s.id)
+                satisfied = True
+                for wanted_coach in filter_coaches:
+                    if len(studio_classes.filter(coach=wanted_coach)) == 0:
+                        satisfied = False
+                coaches_satisfied = True if satisfied else False
+
+            all_conditions_satisfied = name_satisfied and amenities_satisfied and classes_satisfied and coaches_satisfied
+
+            # if exists one condition not satisfied, then continue to next studio
+            if not all_conditions_satisfied:
+                continue
+
             studio = s.__dict__
             studio.pop('_state')
 
@@ -52,8 +100,6 @@ def AllStudios(request):
             studio['distance'] = round(distance, 2)
 
             # remove / add some data
-            studio.pop('latitude')
-            studio.pop('longitude')
             studio.pop('phone_num')
             studio.pop('postal')
             studio['directions'] = url
@@ -74,6 +120,36 @@ def AllStudios(request):
 def StudioInformation(request, id):
     if request.method == 'GET':
         studio = get_object_or_404(Studio, id=id)
-        studio = studio.__dict__
-        studio.pop('_state')
-        return JsonResponse(studio)
+        # studio = studio.__dict__
+        # studio.pop('_state')
+        name, address, lat, long, postal, phone = studio.name,\
+                                                    studio.address, studio.latitude,\
+                                                    studio.latitude, studio.postal, studio.phone_num
+        classes_raw = Classes.objects.filter(studio=studio)
+
+        class_lst = []
+        if classes_raw is not None:
+            for classes in classes_raw.all():
+                capacity = classes.capacity
+                if capacity == 0:
+                    continue
+                class_name, description, coach, weekday = classes.name, classes.description, classes.coach, classes.weekday
+                keywords_lst = [keyword.keyword for keyword in classes.keywords.all()]
+                class_inst = Class.objects.filter(classes=classes).all()[0]
+                start_time = class_inst.start_time
+                end_time = class_inst.end_time
+                class_data = {"classname": class_name, "description": description, "coach": coach, "weekday": weekday,
+                              "keywords": keywords_lst, "start": start_time, "end": end_time}
+                class_lst.append(class_data)
+        amenities_lst = []
+        images_lst = []
+        images = ImageSet.objects.filter(studio=studio)
+        amenities = AmmenitySet.objects.filter(studio=studio)
+        print(images, amenities)
+        if amenities is not None:
+            amenities_lst = [amenity.type.type for amenity in amenities.all()]
+        if images is not None:
+            images_lst = [image.image.image.url for image in images]
+        data = {"name":name, "address": address, "latitude": lat, "longitude": long,
+                "phone_num": phone, "amenities": amenities_lst, "images": images_lst, "classes": class_lst}
+        return JsonResponse(data, safe=False)
