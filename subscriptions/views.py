@@ -271,6 +271,15 @@ def DeleteSubscription(request, id):
         return JsonResponse({"success": "Subscription deleted successfully!"})
 
 
+@api_view(["GET"])
+def GetUserSubscription(request):
+    if request.method == 'GET' and request.user.is_authenticated:
+        subscription_id = StripeUser.objects.all().filter(
+            user_id=request.user.id)[0].subscription_id
+        subscription = Subscription.objects.all().filter(id=subscription_id)[0]
+        return JsonResponse({"id": subscription.id, "name": subscription.name, "price_id": subscription.price_id, "amount": subscription.amount, "type": subscription.type})
+
+
 @ api_view(["GET"])
 def GetPrevInvoices(request):
 
