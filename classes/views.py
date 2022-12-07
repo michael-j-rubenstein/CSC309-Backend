@@ -27,7 +27,7 @@ def CreateClasses(request, id):
         studio = Studio.objects.get(id=studio_id)
         if studio is None:
             return HttpResponse("No studio found", status=404)
-        classes_info = json.loads(request.body).get("body")
+        classes_info = json.loads(request.body)
         name = classes_info.get('name')
         if Classes.objects.filter(name=name).exists():
             return HttpResponse("This class name already exists")
