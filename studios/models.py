@@ -23,7 +23,7 @@ class Ammenity(models.Model):
 
 
 class Image(models.Model):
-    image = models.ImageField(upload_to='studios/images')
+    image = models.ImageField(upload_to='studios/images/')
 
     def __str__(self):
         return str(self.image)

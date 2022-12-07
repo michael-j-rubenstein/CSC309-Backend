@@ -1,12 +1,12 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 
 from rest_framework.decorators import api_view
 from rest_framework.generics import get_object_or_404
 from rest_framework.exceptions import ValidationError
 
-from .models import Studio
-from classes.models import Classes
+from .models import Studio, AmmenitySet, ImageSet
+from classes.models import Classes, Class
 
 import json
 import math
@@ -122,6 +122,36 @@ def AllStudios(request):
 def StudioInformation(request, id):
     if request.method == 'GET':
         studio = get_object_or_404(Studio, id=id)
-        studio = studio.__dict__
-        studio.pop('_state')
-        return JsonResponse(studio)
+        # studio = studio.__dict__
+        # studio.pop('_state')
+        name, address, lat, long, postal, phone = studio.name,\
+                                                    studio.address, studio.latitude,\
+                                                    studio.latitude, studio.postal, studio.phone_num
+        classes_raw = Classes.objects.filter(studio=studio)
+
+        class_lst = []
+        if classes_raw is not None:
+            for classes in classes_raw.all():
+                capacity = classes.capacity
+                if capacity == 0:
+                    continue
+                class_name, description, coach, weekday = classes.name, classes.description, classes.coach, classes.weekday
+                keywords_lst = [keyword.keyword for keyword in classes.keywords.all()]
+                class_inst = Class.objects.filter(classes=classes).all()[0]
+                start_time = class_inst.start_time
+                end_time = class_inst.end_time
+                class_data = {"classname": class_name, "description": description, "coach": coach, "weekday": weekday,
+                              "keywords": keywords_lst, "start": start_time, "end": end_time}
+                class_lst.append(class_data)
+        amenities_lst = []
+        images_lst = []
+        images = ImageSet.objects.filter(studio=studio)
+        amenities = AmmenitySet.objects.filter(studio=studio)
+        print(images, amenities)
+        if amenities is not None:
+            amenities_lst = [amenity.type.type for amenity in amenities.all()]
+        if images is not None:
+            images_lst = [image.image.image.url for image in images]
+        data = {"name":name, "address": address, "latitude": lat, "longitude": long,
+                "phone_num": phone, "amenities": amenities_lst, "images": images_lst, "classes": class_lst}
+        return JsonResponse(data, safe=False)
