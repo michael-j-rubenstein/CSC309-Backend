@@ -178,11 +178,13 @@ def ListClasses(request, id):
 def EnrollClasses(request, id):
     if request.method == "POST":
         if not request.user.is_authenticated:
+            print("Did not login")
             return HttpResponse("Login in first to enroll a class!", status=403)
         studio = Studio.objects.get(id=id)
         if studio is None:
+            print("no such studio")
             return HttpResponse("No studio found", status=404)
-        data = json.loads(request.body)
+        data = json.loads(request.body).get("data")
         classes = Classes.objects.get(
             studio=studio, name=data.get("classname"))
         if classes.capacity == 0:
@@ -214,7 +216,8 @@ def EnrollClasses(request, id):
                 return JsonResponse({"error": str(e)})
 
             if sub is False:
-                return HttpResponse("Need subscribe first to enroll the class!")
+                print("subscribe first")
+                return HttpResponse("Need subscribe first to enroll the class!", status=403)
             else:
                 new_cap = classes.capacity - 1
                 classes.capacity = new_cap
@@ -354,3 +357,86 @@ def SearchClass(request, id):
                 data.append(class_info)
 
         return JsonResponse(data, safe=False)
+
+@api_view(["POST"])
+@csrf_exempt
+def SearchClasses(request, id):
+    if request.method == "POST":
+        studio = Studio.objects.get(id=id)
+        if studio is None:
+            return HttpResponse("No studio found", status=404)
+        search_key = json.loads(request.body).get("body")
+        print(search_key)
+        coach = search_key.get("coach")
+        class_name = search_key.get("classname")
+        class_lst = Class.objects.filter(studio=studio)
+        if coach is not None:
+            class_lst = class_lst.filter(coach=coach)
+
+        if class_name is not None:
+            class_lst = class_lst.filter(name=class_name)
+
+        date_raw = search_key.get("date")
+        if date_raw is not None:
+            date = datetime.date(date_raw["year"], date_raw["month"], date_raw["day"])
+            print(date)
+            class_lst = class_lst.filter(date=date)
+            print(class_lst)
+
+        data = []
+
+        start_raw = search_key.get("start")
+        end_raw = search_key.get("end")
+        if start_raw is not None and end_raw is not None:
+            start = datetime.time(start_raw["hour"], start_raw["minute"])
+            end = datetime.time(end_raw["hour"], end_raw["minute"])
+            for class_inst in class_lst:
+                if class_inst.start_time > start and class_inst.end_time < end:
+                    class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
+                                  "end_time": class_inst.end_time, "date": class_inst.date}
+                    data.append(class_info)
+
+        if start_raw is not None and end_raw is None:
+            start = datetime.time(start_raw["hour"], start_raw["minute"])
+            for class_inst in class_lst:
+                if class_inst.start_time > start:
+                    class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
+                                  "end_time": class_inst.end_time, "date": class_inst.date}
+                    data.append(class_info)
+
+        if start_raw is None and end_raw is not None:
+            end = datetime.time(end_raw["hour"], end_raw["minute"])
+            for class_inst in class_lst:
+                if class_inst.end_time < end:
+                    class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
+                                  "end_time": class_inst.end_time, "date": class_inst.date}
+                    data.append(class_info)
+
+        if start_raw is None and end_raw is None:
+            for class_inst in class_lst:
+                class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
+                              "end_time": class_inst.end_time, "date": class_inst.date}
+                data.append(class_info)
+
+        if data is None:
+            return JsonResponse(data, safe=False)
+        else:
+            classes = dict()
+            for class_inst in data:
+                classes[class_inst["name"]] = {"start_time": class_inst["start_time"],
+                                               "end_time": class_inst["end_time"]}
+
+            classes_data = []
+            for key in classes.keys():
+                curr = Classes.objects.get(name=key)
+
+                keyword_lst = []
+                for keyword in curr.keywords.all():
+                    keyword_lst.append(keyword.keyword)
+                classes_info = {"classname": key, "description": curr.description, "coach": curr.coach,
+                           "weekday": curr.weekday, "keywords": keyword_lst,
+                           "start": classes.get(key)["start_time"], "end": classes.get(key)["end_time"]}
+                classes_data.append(classes_info)
+
+            return JsonResponse(classes_data, safe=False)
+
