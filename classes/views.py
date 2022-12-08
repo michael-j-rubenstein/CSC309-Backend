@@ -358,6 +358,7 @@ def SearchClass(request, id):
 
         return JsonResponse(data, safe=False)
 
+
 @api_view(["POST"])
 @csrf_exempt
 def SearchClasses(request, id):
@@ -370,49 +371,55 @@ def SearchClasses(request, id):
         coach = search_key.get("coach")
         class_name = search_key.get("classname")
         class_lst = Class.objects.filter(studio=studio)
-        if coach is not None:
+        if coach is not None and coach != '':
             class_lst = class_lst.filter(coach=coach)
 
-        if class_name is not None:
+        if class_name is not None and class_name != "":
             class_lst = class_lst.filter(name=class_name)
 
         date_raw = search_key.get("date")
         if date_raw is not None:
-            date = datetime.date(date_raw["year"], date_raw["month"], date_raw["day"])
-            print(date)
-            class_lst = class_lst.filter(date=date)
-            print(class_lst)
+            if date_raw["year"] is not None:
+                date = datetime.date(date_raw["year"], date_raw["month"], date_raw["day"])
+                class_lst = class_lst.filter(date=date)
 
         data = []
 
-        start_raw = search_key.get("start")
-        end_raw = search_key.get("end")
+        start_raw = search_key.get("start_time")
+        end_raw = search_key.get("end_time")
         if start_raw is not None and end_raw is not None:
-            start = datetime.time(start_raw["hour"], start_raw["minute"])
-            end = datetime.time(end_raw["hour"], end_raw["minute"])
-            for class_inst in class_lst:
-                if class_inst.start_time > start and class_inst.end_time < end:
-                    class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
-                                  "end_time": class_inst.end_time, "date": class_inst.date}
-                    data.append(class_info)
+            if start_raw["hour"] is not None and end_raw["hour"] is not None:
+                print("start end here")
+                start = datetime.time(start_raw["hour"], start_raw["minute"])
+                end = datetime.time(end_raw["hour"], end_raw["minute"])
+                for class_inst in class_lst:
+                    if class_inst.start_time > start and class_inst.end_time < end:
+                        class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
+                                      "end_time": class_inst.end_time, "date": class_inst.date}
+                        data.append(class_info)
 
         if start_raw is not None and end_raw is None:
-            start = datetime.time(start_raw["hour"], start_raw["minute"])
-            for class_inst in class_lst:
-                if class_inst.start_time > start:
-                    class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
-                                  "end_time": class_inst.end_time, "date": class_inst.date}
-                    data.append(class_info)
+            if start_raw["hour"] is not None:
+                print("start here")
+                start = datetime.time(start_raw["hour"], start_raw["minute"])
+                for class_inst in class_lst:
+                    if class_inst.start_time > start:
+                        class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
+                                    "end_time": class_inst.end_time, "date": class_inst.date}
+                        data.append(class_info)
 
         if start_raw is None and end_raw is not None:
-            end = datetime.time(end_raw["hour"], end_raw["minute"])
-            for class_inst in class_lst:
-                if class_inst.end_time < end:
-                    class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
-                                  "end_time": class_inst.end_time, "date": class_inst.date}
-                    data.append(class_info)
+            if end_raw["hour"] is not None:
+                print("end here")
+                end = datetime.time(end_raw["hour"], end_raw["minute"])
+                for class_inst in class_lst:
+                    if class_inst.end_time < end:
+                        class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
+                                    "end_time": class_inst.end_time, "date": class_inst.date}
+                        data.append(class_info)
 
         if start_raw is None and end_raw is None:
+            print("none here")
             for class_inst in class_lst:
                 class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
                               "end_time": class_inst.end_time, "date": class_inst.date}
@@ -434,9 +441,8 @@ def SearchClasses(request, id):
                 for keyword in curr.keywords.all():
                     keyword_lst.append(keyword.keyword)
                 classes_info = {"classname": key, "description": curr.description, "coach": curr.coach,
-                           "weekday": curr.weekday, "keywords": keyword_lst,
-                           "start": classes.get(key)["start_time"], "end": classes.get(key)["end_time"]}
+                                "weekday": curr.weekday, "keywords": keyword_lst,
+                                "start": classes.get(key)["start_time"], "end": classes.get(key)["end_time"]}
                 classes_data.append(classes_info)
 
             return JsonResponse(classes_data, safe=False)
-
