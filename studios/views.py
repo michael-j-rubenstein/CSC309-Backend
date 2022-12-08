@@ -147,7 +147,6 @@ def StudioInformation(request, id):
         images_lst = []
         images = ImageSet.objects.filter(studio=studio)
         amenities = AmmenitySet.objects.filter(studio=studio)
-        print(images, amenities)
         if amenities is not None:
             amenities_lst = [amenity.type.type for amenity in amenities.all()]
         if images is not None:
