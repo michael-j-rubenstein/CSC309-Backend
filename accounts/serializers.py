@@ -31,19 +31,10 @@ class ProfileSerializer(serializers.ModelSerializer):
                   'phone_number', 'password', 'password2')
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError(
-                {"Error: The two password fields didn't match"})
+        if 'password' in attrs and attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({"Error: The two password fields didn't match"})
 
         return attrs
-
-    def save(self, user_id):
-        user = get_object_or_404(Users, pk=user_id)
-        if self.validated_data['password'] != '' and self.validated_data['password2'] != '':
-            user.set_password(self.validated_data['password'])
-            user.save()
-        user.save()
-        return user
 
 
 class MePageSerializer(serializers.ModelSerializer):
