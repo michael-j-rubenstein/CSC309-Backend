@@ -14,6 +14,7 @@ from rest_framework.exceptions import ValidationError
 
 import stripe
 import json
+import time
 from django.conf import settings
 
 # Create your views here.
@@ -274,10 +275,45 @@ def DeleteSubscription(request, id):
 @api_view(["GET"])
 def GetUserSubscription(request):
     if request.method == 'GET' and request.user.is_authenticated:
-        subscription_id = StripeUser.objects.all().filter(
-            user_id=request.user.id)[0].subscription_id
-        subscription = Subscription.objects.all().filter(id=subscription_id)[0]
-        return JsonResponse({"id": subscription.id, "name": subscription.name, "price_id": subscription.price_id, "amount": subscription.amount, "type": subscription.type})
+
+        is_active = False
+
+        stripe_user = StripeUser.objects.all().filter(
+            user_id=request.user.id)
+
+        if len(stripe_user) != 0:
+            is_active = True
+
+        user_logs = StripeUserLog.objects.all().filter(user_id=request.user.id)
+
+        stripe_customer_ids = []
+
+        for log in user_logs:
+            stripe_customer_ids.append(log.stripe_customer_id)
+
+        subscription = {}
+
+        for customer_id in stripe_customer_ids:
+            invoices = stripe.Invoice.list(customer=customer_id).data
+            for invoice in invoices:
+                if invoice.lines.data[0].period.end >= time.time():
+                    sub_data = {
+                        "name": invoice.lines.data[0].plan.nickname,
+                        "type": 'M' if invoice.lines.data[0].plan.interval == 'month' else 'Y',
+                        "amount": invoice.lines.data[0].plan.amount,
+                        "id": invoice.lines.data[0].plan.product,
+                        "price_id": invoice.lines.data[0].plan.id,
+                        "period_start": invoice.lines.data[0].period.start,
+                        "period_end": invoice.lines.data[0].period.end,
+                        "active": is_active
+                    }
+                    subscription = sub_data
+                    print(invoice)
+
+        if list(subscription.keys()) != []:
+            return JsonResponse(subscription)
+
+        return JsonResponse({})
 
 
 @ api_view(["GET"])
