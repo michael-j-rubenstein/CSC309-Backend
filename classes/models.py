@@ -49,7 +49,6 @@ class Classes(models.Model):
 
         if not class_lst.exists():
             print("create")
-            print("aaa", type(class_date.date()), "bbb", type(class_end))
             while class_date.date() < class_end:
                 new_class = Class(name=name, start_time=class_start_time, end_time=class_end_time, date=class_date,
                                   studio=studio, classes=self, coach=coach)
@@ -71,6 +70,13 @@ class Classes(models.Model):
             for class_inst in class_lst:
                 class_inst.end_time = end_time
                 class_inst.save()
+
+            while class_date.date() < class_end:
+                if not Class.objects.filter(name=name, date=class_date).exists():
+                    new_class = Class(name=name, start_time=class_start_time, end_time=class_end_time, date=class_date,
+                                    studio=studio, classes=self, coach=coach)
+                    new_class.save()
+                class_date = class_date + datetime.timedelta(days=7)
 
             class_lst.filter(date__gt=end_date).delete()
 
