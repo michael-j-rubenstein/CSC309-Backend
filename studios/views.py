@@ -123,8 +123,8 @@ def StudioInformation(request, id):
         # studio = studio.__dict__
         # studio.pop('_state')
         name, address, lat, long, postal, phone = studio.name,\
-                                                    studio.address, studio.latitude,\
-                                                    studio.latitude, studio.postal, studio.phone_num
+            studio.address, studio.latitude,\
+            studio.latitude, studio.postal, studio.phone_num
         classes_raw = Classes.objects.filter(studio=studio)
 
         class_lst = []
@@ -134,7 +134,8 @@ def StudioInformation(request, id):
                 if capacity == 0:
                     continue
                 class_name, description, coach, weekday = classes.name, classes.description, classes.coach, classes.weekday
-                keywords_lst = [keyword.keyword for keyword in classes.keywords.all()]
+                keywords_lst = [
+                    keyword.keyword for keyword in classes.keywords.all()]
                 class_inst = Class.objects.filter(classes=classes).all()[0]
                 start_time = class_inst.start_time
                 end_time = class_inst.end_time
@@ -145,10 +146,16 @@ def StudioInformation(request, id):
         images_lst = []
         images = ImageSet.objects.filter(studio=studio)
         amenities = AmmenitySet.objects.filter(studio=studio)
+
+        url_dest = address.replace(
+            ' ', '+') + '+' + postal.replace('', '+')
+
         if amenities is not None:
-            amenities_lst = [amenity.type.type for amenity in amenities.all()]
+            amenities_lst = [{"name": amenity.type.type, "quantity": amenity.quanitity}
+                             for amenity in amenities.all()]
         if images is not None:
             images_lst = [image.image.image.url for image in images]
-        data = {"name":name, "address": address, "latitude": lat, "longitude": long,
-                "phone_num": phone, "amenities": amenities_lst, "images": images_lst, "classes": class_lst}
+        data = {"name": name, "address": address, "latitude": lat, "longitude": long, "postal": postal, "phone": phone,
+                "phone_num": phone, "amenities": amenities_lst, "images": images_lst, "classes": class_lst, "url_dest": url_dest}
+        print(data)
         return JsonResponse(data, safe=False)
