@@ -67,6 +67,9 @@ def CreateClasses(request, id):
         class_start_time = datetime.time(
             start_time['hour'], start_time['minute'])
         class_end_time = datetime.time(end_time['hour'], end_time['minute'])
+        new_classes.start_time = class_start_time
+        new_classes.end_time = class_end_time
+        new_classes.end_date = class_end
         new_classes.save()
 
         while class_date < class_end:
@@ -93,12 +96,16 @@ def EditClasses(request, id):
             return HttpResponse("No studio found", status=404)
         classes_info = json.loads(request.body)
         name = classes_info.get('name')
+        altername = classes_info.get("altername")
         description = classes_info.get('description')
         coach = classes_info.get('coach')
-        capacity = int(classes_info.get('capacity'))
+        capacity = classes_info.get('capacity')
+        start_raw = classes_info.get("start_time")
+        end_raw = classes_info.get("end_time")
+        date_raw = classes_info.get("date")
 
         classes = Classes.objects.get(studio=studio, name=name)
-        class_lst = Class.objects.get(studio=studio, name=name)
+        class_lst = Class.objects.filter(studio=studio, name=name)
 
         if description is not None:
             classes.description = description
@@ -109,7 +116,29 @@ def EditClasses(request, id):
                 class_inst.coach = coach
 
         if capacity is not None:
-            classes.capacity = capacity
+            classes.capacity = int(capacity)
+
+        if altername is not None:
+            classes.name = altername
+            for class_inst in class_lst:
+                class_inst.name = altername
+                class_inst.save()
+
+        if start_raw is not None:
+            start = datetime.time(start_raw["hour"], start_raw["minute"])
+            for class_inst in class_lst:
+                class_inst.start_time = start
+                class_inst.save()
+
+        if end_raw is not None:
+            end = datetime.time(end_raw["hour"], end_raw["minute"])
+            for class_inst in class_lst:
+                class_inst.end_time = end
+                class_inst.save()
+
+        if date_raw is not None:
+            date = datetime.date(date_raw["year"], date_raw["month"], date_raw["day"])
+            class_lst.filter(date__gt=date).delete()
 
         classes.save()
 
@@ -190,10 +219,7 @@ def EnrollClasses(request, id):
         if classes.capacity == 0:
             return HttpResponse("Enrolling failed! The class is full!")
         else:
-            # username = data.get("username")
-            # user = User.objects.get(username=username)
             user = request.user
-            # sub_user = StripeUser.objects.get(user_id=user)
 
             user_logs = StripeUserLog.objects.all().filter(user_id=request.user.id)
 
@@ -202,29 +228,44 @@ def EnrollClasses(request, id):
             for log in user_logs:
                 stripe_customer_ids.append(log.stripe_customer_id)
 
-            try:
-                sub = False
-                for customer_id in stripe_customer_ids:
-                    invoices = stripe.Invoice.list(customer=customer_id).data
-                    for invoice in invoices:
-                        curr_period_end = invoice.lines.data[0].period["end"]
-                        curr_time = time.time()
-                        if curr_period_end > curr_time:
-                            sub = True
-                            break
-            except Exception as e:
-                return JsonResponse({"error": str(e)})
+            stripe_user = StripeUser.objects.all().filter(
+                user_id=user.id)
 
-            if sub is False:
-                print("subscribe first")
+            is_active = False
+
+            if len(stripe_user) != 0:
+                is_active = True
+            if not is_active:
                 return HttpResponse("Need subscribe first to enroll the class!", status=403)
             else:
+                print("enroll here")
                 new_cap = classes.capacity - 1
                 classes.capacity = new_cap
                 user.classes.add(classes)
                 class_lst = Class.objects.filter(classes=classes)
+                stripe_user = StripeUser.objects.all().filter(
+                    user_id=user.id)
+                user_logs = StripeUserLog.objects.all().filter(user_id=user.id)
+                stripe_customer_ids = []
+
+                for log in user_logs:
+                    stripe_customer_ids.append(log.stripe_customer_id)
+
+                end_period = None
+
+                for customer_id in stripe_customer_ids:
+                    invoices = stripe.Invoice.list(customer=customer_id).data
+                    for invoice in invoices:
+                        if invoice.lines.data[0].period.end >= time.time():
+                            timestamp = invoice.lines.data[0].period.end
+                            end_period = datetime.datetime.fromtimestamp(timestamp).date()
+
                 for class_inst in class_lst:
-                    user.class_lst.add(class_inst.id)
+                    if class_inst.date < end_period:
+                        user.class_lst.add(class_inst.id)
+                        user.save()
+                        print(user.class_lst)
+                        print(user.classes)
                 return HttpResponse("Enroll in class successfully!")
 
 
