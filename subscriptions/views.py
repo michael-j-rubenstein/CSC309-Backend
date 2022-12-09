@@ -44,9 +44,33 @@ class CreateStripeCheckoutSession(APIView):
         user_has_subscription = len(
             StripeUser.objects.all().filter(user_id=request.user.id)) == 1
 
+        # See if user has an active subscription
+
         if user_has_subscription:
             print("1 here")
             return JsonResponse({"error": "User already has a subscription"})
+
+        # See if user has an unsubscribed subscription that is still valid
+
+        user_logs = StripeUserLog.objects.all().filter(user_id=request.user.id)
+
+        stripe_customer_ids = []
+
+        for log in user_logs:
+            stripe_customer_ids.append(log.stripe_customer_id)
+
+        has_subscription = False
+
+        for customer_id in stripe_customer_ids:
+            invoices = stripe.Invoice.list(customer=customer_id).data
+            for invoice in invoices:
+                if invoice.lines.data[0].period.end >= time.time():
+                    has_subscription = True
+
+        if has_subscription:
+            return JsonResponse({"error": "User still in subscription period"})
+
+        # Get checkout session below
 
         subscription_id = self.kwargs['pk']
         try:
@@ -79,6 +103,31 @@ def SuccessCheckout(request, session_id):
     if request.method == 'GET' and request.user.is_authenticated:
 
         try:
+
+            stripe_user = StripeUser.objects.all().filter(
+                user_id=request.user.id)
+
+            if len(stripe_user) != 0:
+                return JsonResponse({"error": "User still in subscription period"})
+
+            user_logs = StripeUserLog.objects.all().filter(user_id=request.user.id)
+
+            stripe_customer_ids = []
+
+            for log in user_logs:
+                stripe_customer_ids.append(log.stripe_customer_id)
+
+            has_subscription = False
+
+            for customer_id in stripe_customer_ids:
+                invoices = stripe.Invoice.list(customer=customer_id).data
+                for invoice in invoices:
+                    if invoice.lines.data[0].period.end >= time.time():
+                        has_subscription = True
+
+            if has_subscription:
+                return JsonResponse({"error": "User still in subscription period"})
+
             session = stripe.checkout.Session.retrieve(session_id)
 
             if session.customer is None:
@@ -317,7 +366,6 @@ def GetUserSubscription(request):
                         "active": is_active
                     }
                     subscription = sub_data
-                    print(invoice)
 
         if list(subscription.keys()) != []:
             return JsonResponse(subscription)
