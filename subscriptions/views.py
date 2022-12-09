@@ -9,6 +9,7 @@ from .models import Subscription, StripeUser, StripeUserLog
 from .serializers import SubscriptionSerializer
 
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework import permissions
 from rest_framework.exceptions import ValidationError
 
@@ -24,13 +25,13 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 
 class SubscriptionOne(RetrieveAPIView):
     serializer_class = SubscriptionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     queryset = Subscription.objects.all()
 
 
 class SubscriptionAll(ListAPIView):
     serializer_class = SubscriptionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     model = Subscription
     queryset = Subscription.objects.all()
 
@@ -44,6 +45,7 @@ class CreateStripeCheckoutSession(APIView):
             StripeUser.objects.all().filter(user_id=request.user.id)) == 1
 
         if user_has_subscription:
+            print("1 here")
             return JsonResponse({"error": "User already has a subscription"})
 
         subscription_id = self.kwargs['pk']
@@ -62,38 +64,45 @@ class CreateStripeCheckoutSession(APIView):
                     'user_id': request.user.id,
                     'product_id': subscription.id
                 },
-                success_url='http://127.0.0.1:8000/subscriptions/subscribe/success/{CHECKOUT_SESSION_ID}',
-                cancel_url='http://127.0.0.1:8000/subscriptions/subscribe/failed'
+                success_url='http://127.0.0.1:3000/subscription/?successful=true&session={CHECKOUT_SESSION_ID}',
+                cancel_url='http://127.0.0.1:3000/subscription/?successful=false&session={CHECKOUT_SESSION_ID}'
             )
 
             return JsonResponse({'sessionUrl': checkout_session.url})
 
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"error": str(e)})
 
 
 @api_view(["GET"])
 def SuccessCheckout(request, session_id):
     if request.method == 'GET' and request.user.is_authenticated:
 
-        session = stripe.checkout.Session.retrieve(session_id)
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
 
-        customer = stripe.Customer.retrieve(session.customer)
+            if session.customer is None:
+                return JsonResponse({"error": "Invalid checkout session"})
 
-        customer_id = customer.id
-        user_id = request.user
-        subscription_id = session.metadata.product_id
+            customer = stripe.Customer.retrieve(session.customer)
 
-        if len(StripeUser.objects.all().filter(id=request.user.id)) > 0:
-            return JsonResponse({"error": "User subscription created already"})
+            customer_id = customer.id
+            user_id = request.user
+            subscription_id = session.metadata.product_id
 
-        new_user = StripeUser(user_id=user_id,
-                              stripe_customer_id=customer_id, subscription_id=subscription_id)
-        new_user_log = StripeUserLog(
-            user=user_id, stripe_customer_id=customer_id)
-        new_user.save()
-        new_user_log.save()
-        return JsonResponse({"success": session_id})
+            if len(StripeUser.objects.all().filter(id=request.user.id)) > 0:
+                return JsonResponse({"error": "User subscription created already"})
+
+            new_user = StripeUser(user_id=user_id,
+                                  stripe_customer_id=customer_id, subscription_id=subscription_id)
+            new_user_log = StripeUserLog(
+                user=user_id, stripe_customer_id=customer_id)
+            new_user.save()
+            new_user_log.save()
+            return JsonResponse({"success": session_id})
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)})
 
 
 @api_view(["GET"])
