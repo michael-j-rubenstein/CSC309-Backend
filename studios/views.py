@@ -100,8 +100,6 @@ def AllStudios(request):
             studio['distance'] = round(distance, 2)
 
             # remove / add some data
-            studio.pop('latitude')
-            studio.pop('longitude')
             studio.pop('phone_num')
             studio.pop('postal')
             studio['directions'] = url

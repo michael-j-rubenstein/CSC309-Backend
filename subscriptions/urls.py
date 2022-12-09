@@ -1,7 +1,7 @@
 from django.urls import path, include
 from .views import SubscriptionOne, SubscriptionAll, CreateStripeCheckoutSession, \
     CreateSubscription, UpdateSubscription, SuccessCheckout, DeleteSubscription, \
-    GetPrevInvoices, GetUpcomingInvoice, UpdatePaymentMethod, Unsubscribe, UnsuccessfulCheckout
+    GetPrevInvoices, GetUpcomingInvoice, UpdatePaymentMethod, Unsubscribe, UnsuccessfulCheckout, GetUserSubscription
 
 urlpatterns = [
     path('<int:pk>/', SubscriptionOne.as_view(), name='subscriptions_one'),
@@ -17,5 +17,6 @@ urlpatterns = [
     path('subscribe/failed/', UnsuccessfulCheckout, name='checkout_failed'),
     path('invoice/history/', GetPrevInvoices, name='user_prev_invoices'),
     path('invoice/upcoming/', GetUpcomingInvoice, name='user_next_invoice'),
-    path('update/payment/', UpdatePaymentMethod, name="update_payment_method")
+    path('update/payment/', UpdatePaymentMethod, name="update_payment_method"),
+    path('me/', GetUserSubscription, name="user_subscription")
 ]
