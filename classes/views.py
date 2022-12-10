@@ -61,7 +61,7 @@ def CreateClasses(request, id):
         today = datetime.date.today()
         week_day_code = WEEK_DAY_CODE[weekday]
         class_date = today + \
-                     datetime.timedelta(days=-today.weekday() + week_day_code, weeks=1)
+            datetime.timedelta(days=-today.weekday() + week_day_code, weeks=1)
         class_end = datetime.date(
             end_date["year"], end_date["month"], end_date["day"])
         class_start_time = datetime.time(
@@ -137,7 +137,8 @@ def EditClasses(request, id):
                 class_inst.save()
 
         if date_raw is not None:
-            date = datetime.date(date_raw["year"], date_raw["month"], date_raw["day"])
+            date = datetime.date(
+                date_raw["year"], date_raw["month"], date_raw["day"])
             class_lst.filter(date__gt=date).delete()
 
         classes.save()
@@ -156,7 +157,8 @@ def RemoveClass(request):
         name = class_info.get('classname')
         date_raw = class_info.get('date')
         print("date raw", date_raw)
-        date = datetime.date(date_raw["year"], date_raw["month"], date_raw["day"])
+        date = datetime.date(
+            date_raw["year"], date_raw["month"], date_raw["day"])
         if not Class.objects.filter(name=name, date=date).exists():
             return HttpResponse("This time slot or class name does not exist!")
         class_to_remove = Class.objects.filter(name=name, date=date)
@@ -221,6 +223,25 @@ def EnrollClasses(request, id):
         else:
             user = request.user
 
+            # user_logs = StripeUserLog.objects.all().filter(user_id=request.user.id)
+
+            # stripe_customer_ids = []
+
+            # for log in user_logs:
+            #     stripe_customer_ids.append(log.stripe_customer_id)
+
+            # stripe_user = StripeUser.objects.all().filter(
+            #     user_id=user.id)
+
+            # is_active = False
+
+            # if len(stripe_user) != 0:
+            #     is_active = True
+            # if not is_active:
+            #     return HttpResponse("Need subscribe first to enroll the class!", status=403)
+
+            # See if user has an unsubscribed subscription that is still valid
+
             user_logs = StripeUserLog.objects.all().filter(user_id=request.user.id)
 
             stripe_customer_ids = []
@@ -228,15 +249,17 @@ def EnrollClasses(request, id):
             for log in user_logs:
                 stripe_customer_ids.append(log.stripe_customer_id)
 
-            stripe_user = StripeUser.objects.all().filter(
-                user_id=user.id)
+            has_subscription = False
 
-            is_active = False
+            for customer_id in stripe_customer_ids:
+                invoices = stripe.Invoice.list(customer=customer_id).data
+                for invoice in invoices:
+                    if invoice.lines.data[0].period.end >= time.time():
+                        has_subscription = True
 
-            if len(stripe_user) != 0:
-                is_active = True
-            if not is_active:
+            if not has_subscription:
                 return HttpResponse("Need subscribe first to enroll the class!", status=403)
+
             else:
                 print("enroll here")
                 new_cap = classes.capacity - 1
@@ -258,7 +281,8 @@ def EnrollClasses(request, id):
                     for invoice in invoices:
                         if invoice.lines.data[0].period.end >= time.time():
                             timestamp = invoice.lines.data[0].period.end
-                            end_period = datetime.datetime.fromtimestamp(timestamp).date()
+                            end_period = datetime.datetime.fromtimestamp(
+                                timestamp).date()
 
                 for class_inst in class_lst:
                     if class_inst.date < end_period:
@@ -359,7 +383,8 @@ def SearchClass(request, id):
 
         date_raw = search_key.get("date")
         if date_raw is not None:
-            date = datetime.date(date_raw["year"], date_raw["month"], date_raw["day"])
+            date = datetime.date(
+                date_raw["year"], date_raw["month"], date_raw["day"])
             class_lst = class_lst.filter(date=date)
 
         data = []
@@ -421,7 +446,8 @@ def SearchClasses(request, id):
         date_raw = search_key.get("date")
         if date_raw is not None:
             if date_raw["year"] is not None:
-                date = datetime.date(date_raw["year"], date_raw["month"], date_raw["day"])
+                date = datetime.date(
+                    date_raw["year"], date_raw["month"], date_raw["day"])
                 class_lst = class_lst.filter(date=date)
 
         data = []
@@ -446,7 +472,7 @@ def SearchClasses(request, id):
                 for class_inst in class_lst:
                     if class_inst.start_time > start:
                         class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
-                                    "end_time": class_inst.end_time, "date": class_inst.date}
+                                      "end_time": class_inst.end_time, "date": class_inst.date}
                         data.append(class_info)
 
         if start_raw is None and end_raw is not None:
@@ -456,7 +482,7 @@ def SearchClasses(request, id):
                 for class_inst in class_lst:
                     if class_inst.end_time < end:
                         class_info = {"name": class_inst.name, "start_time": class_inst.start_time,
-                                    "end_time": class_inst.end_time, "date": class_inst.date}
+                                      "end_time": class_inst.end_time, "date": class_inst.date}
                         data.append(class_info)
 
         if start_raw is None and end_raw is None:

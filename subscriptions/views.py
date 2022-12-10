@@ -104,6 +104,8 @@ def SuccessCheckout(request, session_id):
 
         try:
 
+            print(request.user)
+
             stripe_user = StripeUser.objects.all().filter(
                 user_id=request.user.id)
 
@@ -139,7 +141,7 @@ def SuccessCheckout(request, session_id):
             user_id = request.user
             subscription_id = session.metadata.product_id
 
-            if len(StripeUser.objects.all().filter(id=request.user.id)) > 0:
+            if len(StripeUser.objects.all().filter(user_id=request.user.id)) > 0:
                 return JsonResponse({"error": "User subscription created already"})
 
             new_user = StripeUser(user_id=user_id,
