@@ -1,5 +1,4 @@
 /venv
-/db.sqlite3
 */__pycache__
 /backend/__pycache__
 /accounts/__pycache__
@@ -9,4 +8,3 @@
 */migrations/__pycache__
 /studios/images
 /media/accounts/images
-/media/

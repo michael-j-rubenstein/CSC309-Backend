@@ -14,6 +14,9 @@ WEEK_DAY_CODE = {'monday': 0, 'tuesday': 1, 'wednesday': 2,
 class Keyword(models.Model):
     keyword = models.CharField(max_length=50, null=False)
 
+    def __str__(self):
+        return self.keyword + ' (' + str(self.id) + ')'
+
 
 class Classes(models.Model):
     name = models.CharField(max_length=50, null=False)
@@ -40,7 +43,7 @@ class Classes(models.Model):
         today = datetime.datetime.today()
         week_day_code = WEEK_DAY_CODE[weekday]
         class_date = today + \
-                     datetime.timedelta(days=-today.weekday() + week_day_code, weeks=1)
+            datetime.timedelta(days=-today.weekday() + week_day_code, weeks=1)
         class_end = self.end_date
         class_start_time = self.start_time
         class_end_time = self.end_time
@@ -74,11 +77,14 @@ class Classes(models.Model):
             while class_date.date() < class_end:
                 if not Class.objects.filter(name=name, date=class_date).exists():
                     new_class = Class(name=name, start_time=class_start_time, end_time=class_end_time, date=class_date,
-                                    studio=studio, classes=self, coach=coach)
+                                      studio=studio, classes=self, coach=coach)
                     new_class.save()
                 class_date = class_date + datetime.timedelta(days=7)
 
             class_lst.filter(date__gt=end_date).delete()
+
+    def __str__(self):
+        return self.name + ' | ' + str(self.studio) + ' (' + str(self.id) + ')'
 
 
 class Class(models.Model):
@@ -89,3 +95,6 @@ class Class(models.Model):
     classes = models.ForeignKey(Classes, on_delete=CASCADE, null=True)
     studio = models.ForeignKey(Studio, on_delete=CASCADE, null=True)
     coach = models.CharField(max_length=50, null=False)
+
+    def __str__(self):
+        return self.name + ' - ' + str(self.date) + ' - ' + str(self.studio)
